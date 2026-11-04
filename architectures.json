@@ -1,0 +1,479 @@
+{
+  "cases": [
+    {
+      "case_id": "fde-rag-01",
+      "title": "Secure Enterprise RAG Support Agent",
+      "difficulty": "Advanced",
+      "category": "Agentic AI and RAG",
+      "customer_scenario": "A global manufacturer wants a support agent that answers technicians from approved manuals, cites evidence, respects document permissions, and operates inside a private Azure network.",
+      "discovery_questions": [
+        "Which repositories, file types, languages, and update frequencies define the knowledge corpus?",
+        "Must retrieval enforce user, group, tenant, region, or document-level permissions?",
+        "What answer-quality, citation, latency, throughput, and cost targets define success?",
+        "Which model actions are read-only, and which require tools, approval, or escalation?"
+      ],
+      "requirements_constraints": [
+        "Return grounded answers with source citations and decline when evidence is insufficient.",
+        "Refresh changed documents without rebuilding the entire index.",
+        "Enforce Microsoft Entra ID and document-level authorization before retrieval.",
+        "Use managed identities, private endpoints, and restricted outbound connectivity rather than application secrets.",
+        "Capture retrieval, quality, safety, latency, and token metrics without logging sensitive prompt content by default."
+      ],
+      "component_flow": [
+        "Technician authenticates with Microsoft Entra ID and submits a question through Application Gateway and WAF.",
+        "An App Service API validates identity and sends the request to a Foundry-hosted agent.",
+        "The agent issues a narrow retrieval request to Azure AI Search using identity-derived filters.",
+        "Azure AI Search returns authorized chunks; the model produces an answer constrained to that context.",
+        "The API attaches citations, applies output policy, and returns the answer.",
+        "Azure Cosmos DB stores permitted conversation memory while Application Insights records redacted operational telemetry."
+      ],
+      "tradeoffs": [
+        "A managed Foundry agent reduces runtime plumbing but provides less orchestration control than an application-owned agent loop.",
+        "Hybrid lexical and vector retrieval improves identifier and semantic matching but increases tuning and evaluation work.",
+        "Precomputed chunks and embeddings improve query latency but introduce ingestion delay and reindexing cost.",
+        "Private networking reduces exposure and exfiltration risk but adds DNS, firewall, deployment, and troubleshooting complexity."
+      ],
+      "failure_security_challenges": [
+        "Prompt injection or poisoned documents persuade the agent to ignore policy or invoke unsafe tools.",
+        "Stale, incomplete, or poorly chunked indexes produce unsupported answers despite a healthy model endpoint.",
+        "Incorrect retrieval filters expose documents across users, departments, or tenants.",
+        "Search, model quota, or regional failures require bounded retries, degradation, and a clear no-answer path."
+      ],
+      "implementation_plan": [
+        {
+          "step": 1,
+          "action": "Define the corpus, authorization model, evaluation set, citation contract, and no-answer behavior."
+        },
+        {
+          "step": 2,
+          "action": "Deploy the Foundry baseline, AI Search, managed identities, private endpoints, firewall rules, and redacted telemetry."
+        },
+        {
+          "step": 3,
+          "action": "Build incremental parsing, chunking, embedding, indexing, hybrid retrieval, and deterministic access filters."
+        },
+        {
+          "step": 4,
+          "action": "Run relevance, groundedness, prompt-injection, permission-leakage, latency, quota, and outage tests before rollout."
+        }
+      ],
+      "spoken_answer_60_seconds": "I would separate ingestion from the online answer path. Documents are parsed, chunked, embedded, tagged with access metadata, and indexed in Azure AI Search. At runtime, the user enters through Application Gateway and authenticates with Entra ID. The application derives authorization filters from trusted claims, and a Foundry agent can retrieve only matching chunks. The model answers from that context and returns citations; if retrieval is weak, it declines or escalates. Managed identities, Private Link, and Azure Firewall remove stored credentials and constrain traffic. I would measure retrieval recall, citation correctness, groundedness, latency, and cost on a representative evaluation set. The critical risks are prompt injection, poisoned content, stale indexes, and authorization leakage, so tools remain narrow and retrieval authorization is enforced outside the model.",
+      "provenance_note": "The source_backed_facts are claims from the cited architecture. The customer scenario, targets, controls, questions, and implementation details outside that list are adapted or proposed for this lab.",
+      "source_backed_facts": [
+        "The reference architecture places application access to Azure services behind private endpoints.",
+        "Agent outbound traffic is routed through Azure Firewall so egress rules can restrict destinations.",
+        "Azure AI Search stores chunked static knowledge used by agents.",
+        "The architecture uses managed identities, Azure Cosmos DB for workload memory, Application Gateway with WAF, and Azure Monitor."
+      ],
+      "adapted_scenario_proposed_additions": [
+        "The manufacturing support scenario and document-level permission model are lab adaptations.",
+        "Hybrid retrieval, deterministic access filters, citation thresholds, and explicit no-answer behavior are proposed production additions.",
+        "The evaluation and adversarial-testing criteria are proposed acceptance gates."
+      ],
+      "source": {
+        "title": "Baseline Microsoft Foundry chat reference architecture",
+        "canonical_url": "https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat"
+      },
+      "supporting_implementation": {
+        "title": "Microsoft Foundry baseline reference implementation",
+        "canonical_url": "https://github.com/Azure-Samples/microsoft-foundry-baseline",
+        "note": "Microsoft sample linked by the reference architecture."
+      }
+    },
+    {
+      "case_id": "fde-hitl-02",
+      "title": "Human Approval for a High-Impact Agent Workflow",
+      "difficulty": "Advanced",
+      "category": "Agentic Workflow and Human-in-the-Loop",
+      "customer_scenario": "An insurance operations agent can investigate a claim and recommend a settlement, but payments above a policy threshold must pause for an authenticated adjuster decision.",
+      "discovery_questions": [
+        "Which decisions require approval, and can thresholds vary by claim type, risk, or user role?",
+        "Who may approve, reject, reassign, or override a request, and is separation of duties required?",
+        "How long may a workflow wait, and what escalation or expiration policy applies?",
+        "Which downstream actions must be idempotent or compensated after approval?"
+      ],
+      "requirements_constraints": [
+        "Persist workflow state while waiting up to 24 hours without holding a compute process open.",
+        "Run model calls and external I/O in activities rather than deterministic orchestration code.",
+        "Derive approver identity and roles from validated Entra claims, not from the approval payload.",
+        "Execute no settlement side effect until approval is recorded, and execute it idempotently.",
+        "Provide a redacted audit trail covering recommendation, decision, approver, timestamps, timeout, and outcome."
+      ],
+      "component_flow": [
+        "A claims API starts a durable orchestration with a stable claim operation ID.",
+        "Activities collect evidence and invoke the agent to produce a structured recommendation.",
+        "The orchestrator records pending status, sends an approval notification, and waits for an external event or durable timeout.",
+        "An Entra-protected approval application submits only the decision and comment.",
+        "The API validates authorization and raises the event against the expected running orchestration.",
+        "On approval, an activity publishes an idempotent settlement command; rejection or timeout closes or escalates the case."
+      ],
+      "tradeoffs": [
+        "Durable orchestration adds state and replay semantics but avoids custom polling and fragile in-memory workflows.",
+        "A single approval is simpler; multilevel approval provides stronger governance but increases latency and abandonment risk.",
+        "Synchronous completion is easier for callers, while asynchronous status and callbacks support realistic human wait times.",
+        "Storing full agent context improves auditability but increases privacy exposure and orchestration-history size."
+      ],
+      "failure_security_challenges": [
+        "A forged or overprivileged approval event authorizes a high-impact action.",
+        "Duplicate approval events or retries execute the settlement more than once.",
+        "Timeout, late approval, cancellation, and reassignment race with one another.",
+        "Nondeterministic model or network calls inside replaying orchestration code produce inconsistent behavior."
+      ],
+      "implementation_plan": [
+        {
+          "step": 1,
+          "action": "Model states, roles, thresholds, timeout, escalation, cancellation, and idempotency semantics."
+        },
+        {
+          "step": 2,
+          "action": "Run the official human-interaction sample locally and replace its console approval with an Entra-protected API."
+        },
+        {
+          "step": 3,
+          "action": "Add agent and notification activities, a redacted status projection, audit storage, and an idempotent command publisher."
+        },
+        {
+          "step": 4,
+          "action": "Test approve, reject, timeout, late event, duplicate event, unauthorized approver, replay, and downstream outage paths."
+        }
+      ],
+      "spoken_answer_60_seconds": "I would put a durable, deterministic workflow around the probabilistic agent. The API starts one orchestration per claim, and activities gather evidence and call the model. The resulting recommendation is structured and policy-checked before the orchestration enters a waiting state. Durable Task Scheduler persists that state and races an external approval event against a durable timeout, so no worker remains blocked. The approval endpoint uses Entra authentication and application roles; it accepts a decision and comment but derives the approver identity from validated claims. Approval publishes an idempotent settlement command, while rejection or timeout closes or escalates the case. I would explicitly test duplicate and late events, replay, unauthorized reviewers, and settlement failures. The model recommends; authenticated policy and deterministic workflow control execution.",
+      "provenance_note": "The source_backed_facts describe the official runnable sample. The insurance agent, authorization hardening, settlement controls, and audit requirements are adapted or proposed additions.",
+      "source_backed_facts": [
+        "The sample submits an approval request through an activity.",
+        "The orchestration waits for either an external approval event or a durable timeout.",
+        "After a response or timeout, it invokes an activity that processes the result.",
+        "The sample supports a local emulator and a deployed Durable Task Scheduler with identity-based authentication."
+      ],
+      "adapted_scenario_proposed_additions": [
+        "The claims-settlement agent and policy threshold are lab adaptations.",
+        "Entra application roles, claim-derived approver identity, and redacted status APIs are proposed security additions.",
+        "Stable operation IDs and an idempotent settlement command are proposed reliability controls."
+      ],
+      "source": {
+        "title": "Durable Task Scheduler Human Interaction Pattern",
+        "canonical_url": "https://github.com/Azure-Samples/Durable-Task-Scheduler/tree/main/samples/durable-task-sdks/dotnet/HumanInteraction"
+      },
+      "supporting_implementation": {
+        "title": "Durable Task Scheduler .NET HumanInteraction sample",
+        "canonical_url": "https://github.com/Azure-Samples/Durable-Task-Scheduler/tree/main/samples/durable-task-sdks/dotnet/HumanInteraction",
+        "note": "Runnable Microsoft sample with worker, client, emulator instructions, external events, and timeout handling."
+      }
+    },
+    {
+      "case_id": "fde-orders-03",
+      "title": "Reliable Event-Driven Order Processing",
+      "difficulty": "Advanced",
+      "category": "Event-Driven Architecture",
+      "customer_scenario": "A retailer must accept flash-sale orders and asynchronously update inventory, billing, fulfillment, loyalty, and notifications without losing events when a broker or service fails.",
+      "discovery_questions": [
+        "Which order transitions require strict ordering, and what is the business aggregate key?",
+        "What peak order rate, burst duration, end-to-end latency, and backlog recovery time must be supported?",
+        "Which consumers may be eventually consistent, and which failures require compensation?",
+        "What replay, retention, deduplication, and audit obligations apply?"
+      ],
+      "requirements_constraints": [
+        "Atomically persist each order change and its domain event so a committed order cannot lose its event.",
+        "Preserve event order per order while allowing unrelated orders to process in parallel.",
+        "Support independently deployable inventory, billing, fulfillment, loyalty, and notification consumers.",
+        "Make every consumer idempotent because delivery and recovery can produce duplicates.",
+        "Provide correlation IDs, dead-letter handling, replay tooling, backlog alerts, and an auditable order timeline."
+      ],
+      "component_flow": [
+        "The order API validates the command and writes the order plus outbox event in one Azure Cosmos DB transactional batch.",
+        "The Cosmos DB change feed exposes committed outbox records to a relay worker.",
+        "The relay publishes events to an Azure Service Bus topic using stable message IDs and an order-based session ID.",
+        "Independent subscriptions trigger inventory, billing, fulfillment, loyalty, and notification functions.",
+        "Consumers persist processed operation IDs and update their own stores.",
+        "Failures retry within policy and then move to dead-letter queues for controlled replay or compensation."
+      ],
+      "tradeoffs": [
+        "A transactional outbox prevents the database-to-broker dual-write gap but adds relay latency and storage.",
+        "Service Bus sessions preserve per-order ordering but constrain partitioning and consumer concurrency.",
+        "Topics simplify fan-out but increase subscription, schema-versioning, and operational overhead.",
+        "At-least-once delivery is practical and resilient, but it moves exactly-once expectations into idempotent business logic."
+      ],
+      "failure_security_challenges": [
+        "Relay retries or recovery create duplicates outside the broker deduplication window.",
+        "A poison event repeatedly fails one subscription and silently accumulates in its dead-letter queue.",
+        "A hot customer or poorly selected partition key exhausts Cosmos DB or session throughput.",
+        "Payment succeeds while inventory or fulfillment fails, requiring an explicit compensation policy."
+      ],
+      "implementation_plan": [
+        {
+          "step": 1,
+          "action": "Define order states, domain events, partition and session keys, schemas, idempotency keys, and compensation rules."
+        },
+        {
+          "step": 2,
+          "action": "Implement the Cosmos DB transactional batch, outbox records, change-feed relay, and Service Bus topic."
+        },
+        {
+          "step": 3,
+          "action": "Build two representative idempotent consumers plus retry, dead-letter, tracing, and replay operations."
+        },
+        {
+          "step": 4,
+          "action": "Inject broker, relay, consumer, and database failures while measuring event loss, duplicates, ordering, and recovery time."
+        }
+      ],
+      "spoken_answer_60_seconds": "The key problem is the dual write between the order database and the message broker. I would solve it with a transactional outbox. The ordering service writes the order and its domain event into Cosmos DB in one transactional batch. A change-feed processor relays committed events to a Service Bus topic. Stable message IDs reduce duplicates, and sessions preserve ordering per order while allowing different orders to run concurrently. Inventory, billing, fulfillment, and notification services receive independent subscriptions and maintain their own idempotency records. Retries are bounded, poison messages go to dead-letter queues, and correlation IDs create an end-to-end timeline. This provides reliable eventual consistency, not magical exactly-once execution, so compensation is explicit—for example, refunding payment if inventory reservation ultimately fails.",
+      "provenance_note": "The source_backed_facts come from the Azure Architecture Center outbox implementation. The retail scale targets, consumer set, compensation policy, and operational gates are adapted or proposed.",
+      "source_backed_facts": [
+        "The architecture commits a business object and its event in the same Azure Cosmos DB transactional batch.",
+        "A change-feed processor or Azure Function relays committed events to Azure Service Bus.",
+        "Service Bus sessions can preserve event order, and duplicate detection uses application-controlled message IDs.",
+        "Microsoft publishes a sample implementation of the pattern."
+      ],
+      "adapted_scenario_proposed_additions": [
+        "The flash-sale retailer and five downstream domains are lab adaptations.",
+        "Persistent consumer-side operation IDs are proposed because broker duplicate detection is not end-to-end exactly-once execution.",
+        "Compensation, replay tooling, and backlog recovery objectives are proposed production additions."
+      ],
+      "source": {
+        "title": "Implement the Transactional Outbox pattern by using Azure Cosmos DB",
+        "canonical_url": "https://learn.microsoft.com/en-us/azure/architecture/databases/guide/transactional-outbox-cosmos"
+      },
+      "supporting_implementation": {
+        "title": "Azure transactional outbox pattern sample",
+        "canonical_url": "https://github.com/Azure-Samples/transactional-outbox-pattern",
+        "note": "Microsoft sample linked from the Architecture Center article."
+      }
+    },
+    {
+      "case_id": "fde-web-ha-04",
+      "title": "Highly Available Multi-Region Customer Portal",
+      "difficulty": "Intermediate",
+      "category": "Web Reliability and Disaster Recovery",
+      "customer_scenario": "A healthcare provider needs its patient portal to remain available through an Azure regional outage while protecting authenticated traffic and limiting data loss.",
+      "discovery_questions": [
+        "What availability SLO, recovery time objective, and recovery point objective are contractually required?",
+        "Can the application be stateless, and where are sessions, files, and transactional data stored?",
+        "Must traffic or data remain within particular geographies?",
+        "Can the business fund active-active capacity, or is active-passive acceptable?"
+      ],
+      "requirements_constraints": [
+        "Survive loss of either application region with an RTO below five minutes.",
+        "Deploy identical stateless App Service applications across two regions using infrastructure as code.",
+        "Route all public traffic through Azure Front Door and WAF while blocking direct origin access.",
+        "Replicate session and business data with an explicitly documented consistency and conflict policy.",
+        "Continuously test health probes, regional capacity, deployment parity, failover, and failback."
+      ],
+      "component_flow": [
+        "Patients connect to Azure Front Door, which terminates TLS, applies WAF policy, and evaluates origin health.",
+        "Front Door routes active-active traffic to zone-redundant App Service deployments in two regions.",
+        "Each stateless application uses managed identity to access regional caches and a geo-replicated data platform.",
+        "Health checks validate a shallow liveness endpoint and a separate dependency-aware readiness endpoint.",
+        "During a regional failure, Front Door removes the unhealthy origin and sends traffic to the surviving region.",
+        "Application Insights availability tests and Azure Monitor alert on customer-visible failure and failover state."
+      ],
+      "tradeoffs": [
+        "Active-active provides faster failover and uses both regions, but costs more and exposes data-conflict paths continuously.",
+        "Active-passive simplifies write ownership but leaves paid capacity idle and can hide secondary-region defects.",
+        "Strong consistency simplifies application behavior but can increase latency or reduce write availability.",
+        "Aggressive health probes reduce detection time but can cause false failovers during transient dependency failures."
+      ],
+      "failure_security_challenges": [
+        "Configuration, schema, certificate, or application-version drift makes the secondary region unusable.",
+        "The surviving region lacks capacity for the full workload after traffic shifts.",
+        "Asynchronous data replication causes stale reads, lost writes, or conflicting updates.",
+        "Attackers bypass Front Door through a public origin or exploit shared secrets copied across regions."
+      ],
+      "implementation_plan": [
+        {
+          "step": 1,
+          "action": "Agree on SLO, RTO, RPO, consistency, data residency, traffic mode, and failure assumptions."
+        },
+        {
+          "step": 2,
+          "action": "Deploy repeatable regional stamps, Front Door, WAF, origin restrictions, managed identities, and monitoring."
+        },
+        {
+          "step": 3,
+          "action": "Externalize state, configure geo-replication, and implement health, conflict, retry, and degradation behavior."
+        },
+        {
+          "step": 4,
+          "action": "Run regional shutdown, dependency failure, capacity, deployment-drift, failback, and data-recovery exercises."
+        }
+      ],
+      "spoken_answer_60_seconds": "I would begin with business recovery objectives because they determine whether active-active is justified. For a low RTO, I would deploy identical stateless App Service instances in two regions and place Azure Front Door with WAF in front. Direct origin access is blocked, and Front Door health probes remove an unhealthy region automatically. State must be externalized: sessions, files, and business data use services with a deliberate replication and consistency policy. Each region is provisioned through the same infrastructure code but can be deployed and rolled back independently. Monitoring combines external availability tests with regional application and dependency signals. The design is incomplete until the surviving region is load-tested at full traffic and failover, failback, data lag, configuration drift, and origin-bypass controls are exercised regularly.",
+      "provenance_note": "The source_backed_facts describe Microsoft's multi-region App Service options. The healthcare scenario, numerical recovery objectives, data platform, readiness model, and test gates are adapted or proposed.",
+      "source_backed_facts": [
+        "Microsoft documents active-active, active-passive, and passive-cold multi-region App Service approaches.",
+        "In active-active mode, Azure Front Door distributes traffic across identical regional web applications.",
+        "Front Door health probes can remove a failed regional origin and route traffic to an operational region.",
+        "The guidance recommends infrastructure as code and consistent, testable regional deployment processes."
+      ],
+      "adapted_scenario_proposed_additions": [
+        "The patient portal and five-minute RTO are lab adaptations.",
+        "The geo-replicated application data design must be selected from customer RPO, consistency, and residency requirements.",
+        "Separate liveness and readiness probes plus full-load failover tests are proposed production practices."
+      ],
+      "source": {
+        "title": "Multiple-region architectures for Azure App Service disaster recovery",
+        "canonical_url": "https://learn.microsoft.com/en-us/azure/architecture/web-apps/guides/multi-region-app-service/multi-region-app-service"
+      },
+      "supporting_implementation": {
+        "title": "Highly available zone-redundant web application sample",
+        "canonical_url": "https://github.com/Azure-Samples/highly-available-zone-redundant-webapp",
+        "note": "Runnable Bicep baseline for one region; the lab proposes extending its regional stamp across two regions."
+      }
+    },
+    {
+      "case_id": "fde-aks-mc-05",
+      "title": "Mission-Critical Active-Active Platform on AKS",
+      "difficulty": "Expert",
+      "category": "Mission-Critical Kubernetes",
+      "customer_scenario": "A digital-payments provider needs a public authorization API with a 99.99% availability target, global traffic, independent regional scale units, controlled releases, and continuous resilience validation.",
+      "discovery_questions": [
+        "Which user journeys define the SLO, and what error-budget and latency targets apply to each?",
+        "Which failures must the system tolerate: pod, node, zone, region, control plane, dependency, or operator error?",
+        "Can writes occur in multiple regions, and how are conflicts, ordering, and reconciliation handled?",
+        "What deployment, rollback, patching, break-glass, and compliance controls must platform and application teams own?"
+      ],
+      "requirements_constraints": [
+        "Serve production traffic from at least two independently deployable active regional stamps.",
+        "Distribute each AKS stamp and supporting services across availability zones.",
+        "Use infrastructure as code and zero-downtime blue-green or progressive delivery.",
+        "Build layered health models that drive safe traffic routing rather than relying only on pod liveness.",
+        "Continuously run synchronized load, chaos, recovery, security, and deployment tests."
+      ],
+      "component_flow": [
+        "Azure Front Door and WAF route global traffic using application-aware regional health.",
+        "Each regional deployment stamp contains independently scalable AKS API and background-processing workloads.",
+        "Workloads use managed identities and private connectivity to regional and globally distributed dependencies.",
+        "Asynchronous operations pass through durable messaging so bursts and dependency failures do not block ingress.",
+        "Regional telemetry remains independently available and is queried across workspaces for a global operational view.",
+        "Deployment pipelines create stamps, release immutable artifacts progressively, validate health, and automatically halt or roll back."
+      ],
+      "tradeoffs": [
+        "Active-active stamps minimize regional recovery time but multiply platform cost and distributed-data complexity.",
+        "Independent stamps reduce correlated failure but increase configuration, release, and observability coordination.",
+        "AKS provides workload and networking control but imposes greater operational responsibility than managed PaaS compute.",
+        "Automated health-based routing reacts quickly but unsafe health models can amplify dependency incidents."
+      ],
+      "failure_security_challenges": [
+        "A shared registry, identity, DNS, pipeline, or data dependency becomes a hidden global single point of failure.",
+        "A bad release or policy change propagates simultaneously to every regional stamp.",
+        "Control-plane access, workload identity, container supply chain, or excessive Kubernetes RBAC is compromised.",
+        "Telemetry or health aggregation fails during the incident and causes incorrect traffic-routing decisions."
+      ],
+      "implementation_plan": [
+        {
+          "step": 1,
+          "action": "Map critical journeys to SLOs, dependencies, failure modes, scale units, data guarantees, and operational ownership."
+        },
+        {
+          "step": 2,
+          "action": "Build one zone-redundant AKS stamp with identity, network, messaging, observability, policy, and supply-chain controls."
+        },
+        {
+          "step": 3,
+          "action": "Automate a second independent stamp, global routing, progressive delivery, rollback, and federated health evaluation."
+        },
+        {
+          "step": 4,
+          "action": "Prove the design with full-load regional evacuation, dependency isolation, chaos, compromised-identity, and bad-release drills."
+        }
+      ],
+      "spoken_answer_60_seconds": "For a mission-critical AKS workload, I would design the regional stamp as the primary unit of scale, deployment, and failure isolation. Azure Front Door sends traffic to at least two active stamps, each using availability zones and independently scalable API and worker components. Infrastructure, policy, and application releases are automated, immutable, and progressively deployed so one bad change cannot reach every stamp at once. Health is layered from customer journey to regional dependencies and drives routing decisions. Messaging absorbs bursts and transient dependency outages, while data design explicitly defines multi-region writes and conflict handling. Observability is federated so losing one workspace does not blind the whole system. The architecture is validated continuously with synchronized load, chaos, regional evacuation, rollback, credential compromise, and recovery exercises—not only component availability checks.",
+      "provenance_note": "The source_backed_facts come from Microsoft's mission-critical architecture guidance. The payment workload, specific component boundaries, security drills, and acceptance criteria are adapted or proposed.",
+      "source_backed_facts": [
+        "The guidance recommends multiple active regions and availability zones for redundancy.",
+        "Regional deployment stamps are treated as independently provisioned scale units.",
+        "The guidance calls for infrastructure as code, zero-downtime blue-green deployment, and continuous load and chaos testing.",
+        "It recommends federated observability rather than a single centralized telemetry dependency."
+      ],
+      "adapted_scenario_proposed_additions": [
+        "The payment-authorization API and its domain-specific data decisions are lab adaptations.",
+        "Progressive release rings, supply-chain controls, and compromised-identity exercises are proposed additions.",
+        "The component flow is a proposed application of the published mission-critical strategies."
+      ],
+      "source": {
+        "title": "Mission-critical workload on Azure",
+        "canonical_url": "https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks-mission-critical/mission-critical-intro"
+      }
+    },
+    {
+      "case_id": "fde-webhook-06",
+      "title": "Secure Third-Party Webhook and SaaS Integration",
+      "difficulty": "Advanced",
+      "category": "Enterprise Integration",
+      "customer_scenario": "A company wants ServiceNow and future SaaS providers to trigger long-running Azure automations and receive completion callbacks without coupling the providers to internal APIs.",
+      "discovery_questions": [
+        "Which providers send or receive events, and which authentication or signature schemes does each support?",
+        "What acknowledgment deadline, event volume, payload size, ordering, and retry behavior does each provider impose?",
+        "How are duplicate event IDs, schema versions, callback URLs, and tenant identities represented?",
+        "Which downstream operations are long-running, non-idempotent, regulated, or dependent on unavailable legacy systems?"
+      ],
+      "requirements_constraints": [
+        "Authenticate each provider, validate signatures or tokens against the raw request, and reject stale or replayed events.",
+        "Acknowledge accepted webhook requests quickly and move long-running work to durable messaging.",
+        "Normalize provider payloads into a versioned internal event contract with correlation and idempotency IDs.",
+        "Use bounded retries, circuit breakers, dead-lettering, and tenant isolation for downstream and callback failures.",
+        "Restrict callback destinations, rotate credentials, redact sensitive payloads, and provide end-to-end auditability."
+      ],
+      "component_flow": [
+        "The SaaS provider sends an HTTPS webhook to an API Management endpoint.",
+        "API Management applies rate limits and forwards the request to an Azure Function that validates authentication, freshness, schema, and event identity.",
+        "The function stores only necessary audit data, normalizes the event, publishes it to Service Bus, and returns a fast acknowledgment.",
+        "A Logic App or Function consumes the message and invokes internal or SaaS APIs using managed identity or a credential from Key Vault.",
+        "Completion is persisted and sent to an allowlisted provider callback URL through a controlled egress path.",
+        "Retries, dead-letter queues, Application Insights, and correlation IDs support recovery and investigation."
+      ],
+      "tradeoffs": [
+        "Direct webhook-to-Function ingress is cheaper, while API Management centralizes policy, onboarding, metering, and versioning.",
+        "Service Bus provides durable commands and backpressure; Event Grid provides lightweight event fan-out but different delivery semantics.",
+        "Logic Apps accelerates connector-heavy integration, while Functions provide greater control and testability for custom validation.",
+        "Immediate synchronous results simplify providers, while asynchronous callbacks protect both sides from long-running operations."
+      ],
+      "failure_security_challenges": [
+        "Forged, replayed, or tampered webhooks bypass weak signature, timestamp, or secret-rotation handling.",
+        "Provider retries produce duplicates or out-of-order state transitions.",
+        "An attacker supplies a callback URL that enables server-side request forgery or data exfiltration.",
+        "A downstream outage creates retry storms, poison messages, or unbounded queue growth."
+      ],
+      "implementation_plan": [
+        {
+          "step": 1,
+          "action": "Document provider contracts, authentication, acknowledgment limits, retry semantics, schemas, callback rules, and tenant boundaries."
+        },
+        {
+          "step": 2,
+          "action": "Implement API Management ingress, raw-body verification, replay protection, normalization, Service Bus, and fast acknowledgment."
+        },
+        {
+          "step": 3,
+          "action": "Add the asynchronous worker or Logic App, controlled callbacks, idempotency storage, dead-letter operations, and redacted telemetry."
+        },
+        {
+          "step": 4,
+          "action": "Test invalid signatures, rotated credentials, duplicates, reordered events, SSRF attempts, throttling, provider outages, and replay."
+        }
+      ],
+      "spoken_answer_60_seconds": "I would keep the public webhook path short and deterministic. API Management provides a stable external contract, rate limits, and provider-specific policies. A Function verifies the token or signature against the raw payload, checks timestamp and event ID for replay, validates the schema, normalizes it to an internal versioned event, and publishes to Service Bus before returning a fast acknowledgment. A separate Function or Logic App performs the long-running automation and records an idempotent result. If the provider needs completion, the system posts to an allowlisted callback through controlled egress. Bounded retries, circuit breakers, dead-letter queues, and correlation IDs prevent a SaaS outage from propagating internally. I would specifically test duplicate delivery, secret rotation, malformed payloads, callback SSRF, throttling, and backlog recovery.",
+      "provenance_note": "The source_backed_facts describe Microsoft's brokered enterprise-integration architecture. The generic webhook ingress, signature verification, callback allowlisting, and test criteria are adapted or proposed using the supporting ServiceNow implementation as a practical precedent.",
+      "source_backed_facts": [
+        "The Azure Architecture Center design integrates SaaS systems, Azure services, message-based services, and enterprise web services.",
+        "It uses Logic Apps and API Management, with Service Bus and Event Grid adding asynchronous decoupling.",
+        "Brokered communication supports load leveling, long-running workflow tracking, and queuing while a backend is unavailable.",
+        "Microsoft's ServiceNow reference implementation uses Service Bus, Azure Functions, OAuth, and a webhook callback for long-running automation."
+      ],
+      "adapted_scenario_proposed_additions": [
+        "The reusable multi-provider webhook façade is a lab adaptation of the ServiceNow precedent.",
+        "Raw-body signature validation, replay protection, callback allowlisting, and SSRF controls are proposed security additions.",
+        "The normalized internal event contract and operational acceptance tests are proposed production practices."
+      ],
+      "source": {
+        "title": "Use a Message Broker and Events to Integrate Enterprise Systems",
+        "canonical_url": "https://learn.microsoft.com/en-us/azure/architecture/example-scenario/integration/queues-events"
+      },
+      "supporting_implementation": {
+        "title": "Integration Services Landing Zone Accelerator: ServiceNow reference implementation",
+        "canonical_url": "https://github.com/Azure/Integration-Services-Landing-Zone-Accelerator/blob/main/docs/scenario2/Reference%20Implementation.md",
+        "note": "Microsoft reference implementation connecting ServiceNow, Service Bus, Azure Functions, Teams automation, and a webhook callback."
+      }
+    }
+  ]
+}
