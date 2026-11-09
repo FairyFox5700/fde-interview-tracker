@@ -23,7 +23,7 @@ The updater uses only the Python standard library and fails safely if Aced retur
 - Practice streak and seven-day activity chart
 - New → Practicing → Mastered status cycle
 - Topic, company, status, and text filters
-- Local browser persistence and progress export
+- Local browser persistence and CSV progress export with clickable source links
 - No backend or account required
 
 ## Local checks
