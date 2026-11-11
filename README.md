@@ -16,6 +16,7 @@ The updater uses only the Python standard library and fails safely if Aced retur
 - Architecture Lab with one full source-backed case for each of the 12 current system-design questions
 - Exact question coverage is validated against the daily-refreshed tracker dataset
 - Hello Interview–style flow: understanding the problem, functional and non-functional requirements, entities, APIs, high-level design, deep dives, and level expectations
+- Responsive SVG architecture diagram for every system-design case, with typed components and labeled data flows
 - Clear labels separating published facts from adapted or proposed design choices
 - Links to the original Microsoft architecture and runnable implementation where available
 - Independent Architecture Lab progress saved in the browser

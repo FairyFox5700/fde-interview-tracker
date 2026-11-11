@@ -1,0 +1,320 @@
+{
+  "diagrams": [
+    {
+      "case_id": "fde-metrics-01",
+      "title": "Telemetry ingestion, storage, query, and alerting",
+      "nodes": [
+        {"id":"producers","label":"Apps & infrastructure","detail":"Metrics · logs · traces","type":"client","col":0,"row":0},
+        {"id":"collectors","label":"OpenTelemetry collectors","detail":"Batch · redact · retry","type":"service","col":1,"row":0},
+        {"id":"ingest","label":"Ingestion gateway","detail":"Auth · quotas · schema","type":"security","col":2,"row":0},
+        {"id":"buffer","label":"Durable event buffer","detail":"Partition by tenant","type":"queue","col":3,"row":0},
+        {"id":"processor","label":"Stream processors","detail":"Normalize · route · aggregate","type":"service","col":2,"row":1},
+        {"id":"metricstore","label":"Metrics store","detail":"Time-series + rollups","type":"data","col":1,"row":2},
+        {"id":"logstore","label":"Log search store","detail":"Hot search + archive","type":"data","col":2,"row":2},
+        {"id":"alerts","label":"Alert evaluator","detail":"Stateful windows","type":"service","col":3,"row":2},
+        {"id":"ui","label":"Query API & dashboards","detail":"RBAC · saved views","type":"client","col":1,"row":3}
+      ],
+      "edges": [
+        {"from":"producers","to":"collectors","label":"OTLP"},
+        {"from":"collectors","to":"ingest","label":"batches"},
+        {"from":"ingest","to":"buffer","label":"durable ack","style":"async"},
+        {"from":"buffer","to":"processor","label":"events","style":"async"},
+        {"from":"processor","to":"metricstore","label":"samples"},
+        {"from":"processor","to":"logstore","label":"documents"},
+        {"from":"processor","to":"alerts","label":"windows"},
+        {"from":"metricstore","to":"ui","label":"queries"},
+        {"from":"logstore","to":"ui","label":"search"},
+        {"from":"alerts","to":"ui","label":"incidents"}
+      ]
+    },
+    {
+      "case_id": "fde-scheduler-02",
+      "title": "Distributed scheduling with leases and competing workers",
+      "nodes": [
+        {"id":"client","label":"Scheduler clients","detail":"Create · pause · cancel","type":"client","col":0,"row":0},
+        {"id":"api","label":"Schedule API","detail":"Auth · idempotency","type":"security","col":1,"row":0},
+        {"id":"store","label":"Schedule store","detail":"Definition · nextRunAt · version","type":"data","col":2,"row":0},
+        {"id":"dispatcher","label":"Due-job dispatchers","detail":"Lease · fence · claim","type":"service","col":2,"row":1},
+        {"id":"queue","label":"Execution queue","detail":"Priority · tenant · DLQ","type":"queue","col":1,"row":2},
+        {"id":"workers","label":"Competing workers","detail":"Heartbeat · bounded retry","type":"service","col":2,"row":2},
+        {"id":"targets","label":"Job targets","detail":"Functions · APIs · containers","type":"external","col":3,"row":2},
+        {"id":"attempts","label":"Attempt & result store","detail":"State · output · audit","type":"data","col":2,"row":3},
+        {"id":"ops","label":"Operations console","detail":"Replay · cancel · inspect","type":"client","col":0,"row":3}
+      ],
+      "edges": [
+        {"from":"client","to":"api","label":"commands"},
+        {"from":"api","to":"store","label":"versioned write"},
+        {"from":"store","to":"dispatcher","label":"due index"},
+        {"from":"dispatcher","to":"queue","label":"jobRunId","style":"async"},
+        {"from":"queue","to":"workers","label":"at least once","style":"async"},
+        {"from":"workers","to":"targets","label":"execute"},
+        {"from":"workers","to":"attempts","label":"heartbeat/result"},
+        {"from":"attempts","to":"ops","label":"status"},
+        {"from":"ops","to":"api","label":"replay/cancel"}
+      ]
+    },
+    {
+      "case_id": "fde-login-03",
+      "title": "Secure login, token issuance, and protected API access",
+      "nodes": [
+        {"id":"browser","label":"Browser / mobile app","detail":"PKCE client","type":"client","col":0,"row":0},
+        {"id":"edge","label":"WAF & rate limits","detail":"Bot and abuse controls","type":"security","col":1,"row":0},
+        {"id":"idp","label":"Identity service","detail":"OAuth 2.0 · OIDC","type":"security","col":2,"row":0},
+        {"id":"users","label":"User directory","detail":"Profile · credentials · status","type":"data","col":3,"row":0},
+        {"id":"risk","label":"Risk & MFA engine","detail":"Step-up · device signals","type":"security","col":2,"row":1},
+        {"id":"keys","label":"Signing keys / HSM","detail":"Rotate with overlap","type":"security","col":3,"row":1},
+        {"id":"session","label":"Session store","detail":"Refresh family · revocation","type":"data","col":1,"row":2},
+        {"id":"api","label":"Protected APIs","detail":"Validate iss · aud · exp","type":"service","col":2,"row":2},
+        {"id":"audit","label":"Security audit stream","detail":"Login · refresh · revoke","type":"queue","col":3,"row":2}
+      ],
+      "edges": [
+        {"from":"browser","to":"edge","label":"authorize"},
+        {"from":"edge","to":"idp","label":"filtered request","style":"security"},
+        {"from":"idp","to":"users","label":"verify identity","style":"security"},
+        {"from":"idp","to":"risk","label":"risk check","style":"security"},
+        {"from":"idp","to":"keys","label":"sign tokens","style":"security"},
+        {"from":"idp","to":"session","label":"refresh session"},
+        {"from":"browser","to":"api","label":"access token"},
+        {"from":"api","to":"audit","label":"auth events","style":"async"},
+        {"from":"idp","to":"audit","label":"identity events","style":"async"}
+      ]
+    },
+    {
+      "case_id": "fde-model-api-04",
+      "title": "Multi-tenant generative-model inference gateway",
+      "nodes": [
+        {"id":"sdk","label":"Customer SDKs","detail":"Sync · stream · batch","type":"client","col":0,"row":0},
+        {"id":"gateway","label":"API Management gateway","detail":"Auth · quota · content limits","type":"security","col":1,"row":0},
+        {"id":"router","label":"Model router","detail":"Policy · health · capability","type":"service","col":2,"row":0},
+        {"id":"models","label":"Model deployments","detail":"Regional pools · versions","type":"external","col":3,"row":0},
+        {"id":"quota","label":"Quota & budget store","detail":"Tokens · tenant · model","type":"data","col":1,"row":1},
+        {"id":"queue","label":"Batch request queue","detail":"Backpressure · priority","type":"queue","col":2,"row":1},
+        {"id":"cache","label":"Safe response cache","detail":"Opt-in deterministic calls","type":"data","col":3,"row":1},
+        {"id":"telemetry","label":"Usage & safety telemetry","detail":"Latency · tokens · policy","type":"data","col":2,"row":2}
+      ],
+      "edges": [
+        {"from":"sdk","to":"gateway","label":"request"},
+        {"from":"gateway","to":"quota","label":"reserve budget","style":"security"},
+        {"from":"gateway","to":"router","label":"authorized prompt","style":"security"},
+        {"from":"router","to":"models","label":"inference"},
+        {"from":"router","to":"cache","label":"lookup/write"},
+        {"from":"gateway","to":"queue","label":"batch","style":"async"},
+        {"from":"queue","to":"router","label":"dequeue","style":"async"},
+        {"from":"router","to":"telemetry","label":"usage"},
+        {"from":"gateway","to":"sdk","label":"streamed response"}
+      ]
+    },
+    {
+      "case_id": "fde-rag-05",
+      "title": "Permission-aware enterprise RAG",
+      "nodes": [
+        {"id":"sources","label":"Private data sources","detail":"Files · wikis · tickets","type":"external","col":0,"row":0},
+        {"id":"ingest","label":"Ingestion pipeline","detail":"Parse · chunk · classify","type":"service","col":1,"row":0},
+        {"id":"search","label":"Azure AI Search","detail":"Hybrid index + ACL metadata","type":"data","col":2,"row":0},
+        {"id":"user","label":"Authenticated user","detail":"Question + tenant context","type":"client","col":0,"row":2},
+        {"id":"gateway","label":"RAG API / gateway","detail":"Entra ID · rate limits","type":"security","col":1,"row":2},
+        {"id":"orchestrator","label":"RAG orchestrator","detail":"Rewrite · retrieve · ground","type":"service","col":2,"row":2},
+        {"id":"model","label":"Foundation model","detail":"Context-bound generation","type":"external","col":3,"row":2},
+        {"id":"policy","label":"Authorization policy","detail":"Trusted claim → ACL filter","type":"security","col":1,"row":1},
+        {"id":"eval","label":"Evaluation & telemetry","detail":"Recall · citations · leakage","type":"data","col":3,"row":3}
+      ],
+      "edges": [
+        {"from":"sources","to":"ingest","label":"changes"},
+        {"from":"ingest","to":"search","label":"chunks + ACLs"},
+        {"from":"user","to":"gateway","label":"question"},
+        {"from":"gateway","to":"policy","label":"claims","style":"security"},
+        {"from":"gateway","to":"orchestrator","label":"authorized request","style":"security"},
+        {"from":"policy","to":"orchestrator","label":"filter","style":"security"},
+        {"from":"orchestrator","to":"search","label":"hybrid retrieval"},
+        {"from":"orchestrator","to":"model","label":"grounded context"},
+        {"from":"model","to":"gateway","label":"answer + citations"},
+        {"from":"orchestrator","to":"eval","label":"redacted trace"}
+      ]
+    },
+    {
+      "case_id": "fde-payments-06",
+      "title": "Idempotent payment processing and reconciliation",
+      "nodes": [
+        {"id":"merchant","label":"Merchant client","detail":"Idempotency-Key","type":"client","col":0,"row":0},
+        {"id":"api","label":"Payments API","detail":"Validate · state machine","type":"security","col":1,"row":0},
+        {"id":"db","label":"Payment DB + outbox","detail":"Atomic business write","type":"data","col":2,"row":0},
+        {"id":"queue","label":"Payment command queue","detail":"Order by paymentId","type":"queue","col":2,"row":1},
+        {"id":"worker","label":"Provider adapter","detail":"Stable retry key","type":"service","col":3,"row":1},
+        {"id":"provider","label":"Payment provider","detail":"Authorize · capture · refund","type":"external","col":3,"row":0},
+        {"id":"webhook","label":"Webhook ingress","detail":"Signature · replay checks","type":"security","col":3,"row":2},
+        {"id":"ledger","label":"Immutable ledger","detail":"Double-entry postings","type":"data","col":1,"row":2},
+        {"id":"recon","label":"Reconciliation worker","detail":"Resolve UNKNOWN outcomes","type":"service","col":2,"row":3}
+      ],
+      "edges": [
+        {"from":"merchant","to":"api","label":"create/capture"},
+        {"from":"api","to":"db","label":"payment + outbox"},
+        {"from":"db","to":"queue","label":"command","style":"async"},
+        {"from":"queue","to":"worker","label":"at least once","style":"async"},
+        {"from":"worker","to":"provider","label":"stable provider key"},
+        {"from":"provider","to":"webhook","label":"signed event","style":"security"},
+        {"from":"webhook","to":"db","label":"versioned transition"},
+        {"from":"db","to":"ledger","label":"posting"},
+        {"from":"provider","to":"recon","label":"provider report"},
+        {"from":"recon","to":"db","label":"repair/exception"}
+      ]
+    },
+    {
+      "case_id": "fde-delivery-07",
+      "title": "Real-time delivery matching and assignment",
+      "nodes": [
+        {"id":"orders","label":"Order service","detail":"Ready windows · constraints","type":"service","col":0,"row":0},
+        {"id":"drivers","label":"Driver location stream","detail":"Availability · GPS · capacity","type":"client","col":0,"row":2},
+        {"id":"geo","label":"Geospatial index","detail":"Nearby candidates · freshness","type":"data","col":1,"row":1},
+        {"id":"routes","label":"Route / ETA service","detail":"Travel time matrix","type":"external","col":1,"row":0},
+        {"id":"matcher","label":"Assignment optimizer","detail":"Score · batch · fairness","type":"service","col":2,"row":1},
+        {"id":"offers","label":"Offer queue","detail":"TTL · rank · retry","type":"queue","col":3,"row":1},
+        {"id":"driverapp","label":"Driver app","detail":"Accept · reject · timeout","type":"client","col":3,"row":2},
+        {"id":"assignment","label":"Assignment store","detail":"Lease · version · audit","type":"data","col":2,"row":3},
+        {"id":"events","label":"Marketplace event stream","detail":"Orders · drivers · outcomes","type":"queue","col":1,"row":3}
+      ],
+      "edges": [
+        {"from":"orders","to":"matcher","label":"ready orders"},
+        {"from":"drivers","to":"geo","label":"locations","style":"async"},
+        {"from":"geo","to":"matcher","label":"candidates"},
+        {"from":"routes","to":"matcher","label":"ETAs"},
+        {"from":"matcher","to":"offers","label":"ranked offers","style":"async"},
+        {"from":"offers","to":"driverapp","label":"push"},
+        {"from":"driverapp","to":"assignment","label":"conditional accept"},
+        {"from":"assignment","to":"events","label":"committed event","style":"async"},
+        {"from":"events","to":"matcher","label":"feedback","style":"async"}
+      ]
+    },
+    {
+      "case_id": "fde-sensor-08",
+      "title": "Mixed-format sensor ingestion and predictive maintenance",
+      "nodes": [
+        {"id":"devices","label":"Sensors & file drops","detail":"JSON · CSV · XML","type":"external","col":0,"row":0},
+        {"id":"gateway","label":"Ingestion gateway","detail":"Device auth · schema routing","type":"security","col":1,"row":0},
+        {"id":"events","label":"Event Hubs","detail":"Partitioned durable stream","type":"queue","col":2,"row":0},
+        {"id":"normalize","label":"Normalization pipeline","detail":"Validate · canonicalize · enrich","type":"service","col":2,"row":1},
+        {"id":"quarantine","label":"Quarantine store","detail":"Invalid payload + reason","type":"data","col":3,"row":1},
+        {"id":"lake","label":"Lakehouse / cold history","detail":"Raw + curated zones","type":"data","col":1,"row":2},
+        {"id":"stream","label":"Streaming features","detail":"Windows · anomaly signals","type":"service","col":2,"row":2},
+        {"id":"model","label":"Failure prediction service","detail":"Versioned model + features","type":"service","col":3,"row":2},
+        {"id":"app","label":"Operations dashboard","detail":"Asset health · explanation · alert","type":"client","col":2,"row":3}
+      ],
+      "edges": [
+        {"from":"devices","to":"gateway","label":"telemetry/files"},
+        {"from":"gateway","to":"events","label":"accepted records","style":"async"},
+        {"from":"events","to":"normalize","label":"events","style":"async"},
+        {"from":"normalize","to":"quarantine","label":"invalid"},
+        {"from":"normalize","to":"lake","label":"raw + canonical"},
+        {"from":"normalize","to":"stream","label":"clean events"},
+        {"from":"stream","to":"model","label":"features"},
+        {"from":"lake","to":"model","label":"training/backfill"},
+        {"from":"model","to":"app","label":"prediction + evidence"}
+      ]
+    },
+    {
+      "case_id": "fde-semantic-search-09",
+      "title": "Hybrid semantic product search for an AI client",
+      "nodes": [
+        {"id":"catalog","label":"Product catalog feeds","detail":"Items · variants · inventory","type":"external","col":0,"row":0},
+        {"id":"indexer","label":"Catalog indexer","detail":"Normalize · enrich · version","type":"service","col":1,"row":0},
+        {"id":"embed","label":"Embedding service","detail":"Title · description · attributes","type":"service","col":2,"row":0},
+        {"id":"search","label":"Azure AI Search","detail":"Text + vectors + filters","type":"data","col":3,"row":0},
+        {"id":"chatgpt","label":"ChatGPT / AI client","detail":"Tool call with user intent","type":"client","col":0,"row":2},
+        {"id":"api","label":"Product Search API","detail":"Auth · schema · quotas","type":"security","col":1,"row":2},
+        {"id":"query","label":"Query orchestrator","detail":"Rewrite · embed · hybrid query","type":"service","col":2,"row":2},
+        {"id":"rerank","label":"Reranker","detail":"Relevance · diversity · policy","type":"service","col":3,"row":2},
+        {"id":"cache","label":"Result / embedding cache","detail":"Version-aware keys","type":"data","col":2,"row":3}
+      ],
+      "edges": [
+        {"from":"catalog","to":"indexer","label":"CDC/snapshots"},
+        {"from":"indexer","to":"embed","label":"documents"},
+        {"from":"embed","to":"search","label":"vectors + fields"},
+        {"from":"chatgpt","to":"api","label":"typed tool request"},
+        {"from":"api","to":"query","label":"authorized query","style":"security"},
+        {"from":"query","to":"cache","label":"lookup"},
+        {"from":"query","to":"search","label":"hybrid + filters"},
+        {"from":"search","to":"rerank","label":"candidates"},
+        {"from":"rerank","to":"api","label":"grounded products"},
+        {"from":"api","to":"chatgpt","label":"IDs + citations"}
+      ]
+    },
+    {
+      "case_id": "fde-federated-login-10",
+      "title": "Single sign-on across client-facing sites",
+      "nodes": [
+        {"id":"sites","label":"Client-facing sites","detail":"Dashboard · support · docs","type":"client","col":0,"row":0},
+        {"id":"edge","label":"Global edge / WAF","detail":"TLS · abuse controls","type":"security","col":1,"row":0},
+        {"id":"idp","label":"Central identity provider","detail":"OIDC · consent · policy","type":"security","col":2,"row":0},
+        {"id":"directory","label":"Customer directory","detail":"Users · orgs · memberships","type":"data","col":3,"row":0},
+        {"id":"risk","label":"Risk & MFA","detail":"Step-up per application","type":"security","col":2,"row":1},
+        {"id":"sso","label":"IdP SSO session","detail":"Central cookie · device state","type":"data","col":1,"row":2},
+        {"id":"tokens","label":"Per-site token exchange","detail":"Audience-scoped tokens","type":"service","col":2,"row":2},
+        {"id":"apis","label":"Site-specific APIs","detail":"Least privilege scopes","type":"service","col":3,"row":2},
+        {"id":"revocation","label":"Logout & revocation stream","detail":"Back-channel events","type":"queue","col":2,"row":3}
+      ],
+      "edges": [
+        {"from":"sites","to":"edge","label":"sign in"},
+        {"from":"edge","to":"idp","label":"authorize","style":"security"},
+        {"from":"idp","to":"directory","label":"identity/org"},
+        {"from":"idp","to":"risk","label":"policy check","style":"security"},
+        {"from":"idp","to":"sso","label":"session"},
+        {"from":"sites","to":"tokens","label":"code + PKCE"},
+        {"from":"tokens","to":"apis","label":"audience token"},
+        {"from":"idp","to":"revocation","label":"logout/revoke","style":"async"},
+        {"from":"revocation","to":"apis","label":"invalidate","style":"async"}
+      ]
+    },
+    {
+      "case_id": "fde-meetups-11",
+      "title": "Internal groups, meetups, calendars, and notifications",
+      "nodes": [
+        {"id":"employee","label":"Employee web / mobile","detail":"Discover · RSVP · organize","type":"client","col":0,"row":0},
+        {"id":"api","label":"Meetup API","detail":"SSO · RBAC · moderation","type":"security","col":1,"row":0},
+        {"id":"db","label":"Groups & events DB","detail":"Membership · capacity · version","type":"data","col":2,"row":0},
+        {"id":"recommend","label":"Discovery service","detail":"Interests · location · privacy","type":"service","col":1,"row":1},
+        {"id":"calendar","label":"Calendar adapter","detail":"Idempotent create/update","type":"service","col":2,"row":1},
+        {"id":"provider","label":"Microsoft / Google calendar","detail":"Invites · rooms · changes","type":"external","col":3,"row":1},
+        {"id":"outbox","label":"Event outbox / queue","detail":"RSVP · reminder · cancellation","type":"queue","col":2,"row":2},
+        {"id":"notify","label":"Notification workers","detail":"Email · chat · push","type":"service","col":3,"row":2},
+        {"id":"audit","label":"Moderation & audit store","detail":"Reports · decisions · retention","type":"data","col":1,"row":3}
+      ],
+      "edges": [
+        {"from":"employee","to":"api","label":"commands/queries"},
+        {"from":"api","to":"db","label":"conditional write"},
+        {"from":"db","to":"recommend","label":"eligible groups"},
+        {"from":"api","to":"calendar","label":"event change"},
+        {"from":"calendar","to":"provider","label":"provider API"},
+        {"from":"db","to":"outbox","label":"domain event","style":"async"},
+        {"from":"outbox","to":"notify","label":"at least once","style":"async"},
+        {"from":"api","to":"audit","label":"moderation action"},
+        {"from":"notify","to":"employee","label":"reminder/update"}
+      ]
+    },
+    {
+      "case_id": "fde-devin-12",
+      "title": "Event-driven engineering automation with Devin",
+      "nodes": [
+        {"id":"tickets","label":"Ticket system","detail":"Issue opened / labeled","type":"external","col":0,"row":0},
+        {"id":"ingress","label":"Webhook ingress","detail":"Verify · dedupe · acknowledge","type":"security","col":1,"row":0},
+        {"id":"queue","label":"Automation queue","detail":"Tenant partition · DLQ","type":"queue","col":2,"row":0},
+        {"id":"orchestrator","label":"Workflow orchestrator","detail":"Policy · state · timeout","type":"service","col":2,"row":1},
+        {"id":"devin","label":"Devin API","detail":"Create and monitor session","type":"external","col":3,"row":1},
+        {"id":"repo","label":"Source repository","detail":"Scoped branch / pull request","type":"external","col":3,"row":2},
+        {"id":"state","label":"Automation state store","detail":"eventId · sessionId · outcome","type":"data","col":1,"row":2},
+        {"id":"approval","label":"Human approval gate","detail":"Review risky or failed work","type":"security","col":1,"row":3},
+        {"id":"notify","label":"Status callback / notifier","detail":"Ticket comment · Teams","type":"service","col":2,"row":3}
+      ],
+      "edges": [
+        {"from":"tickets","to":"ingress","label":"signed event","style":"security"},
+        {"from":"ingress","to":"queue","label":"normalized event","style":"async"},
+        {"from":"queue","to":"orchestrator","label":"at least once","style":"async"},
+        {"from":"orchestrator","to":"state","label":"durable state"},
+        {"from":"orchestrator","to":"devin","label":"create/poll session"},
+        {"from":"devin","to":"repo","label":"scoped changes"},
+        {"from":"devin","to":"orchestrator","label":"status/result"},
+        {"from":"orchestrator","to":"approval","label":"risk/exception","style":"security"},
+        {"from":"orchestrator","to":"notify","label":"outcome"},
+        {"from":"notify","to":"tickets","label":"comment/link"}
+      ]
+    }
+  ]
+}

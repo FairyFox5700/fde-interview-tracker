@@ -12,6 +12,7 @@ class ArchitectureLabTests(unittest.TestCase):
     def setUpClass(cls):
         cls.document = json.loads((ROOT / "architectures.json").read_text(encoding="utf-8"))
         cls.cases = cls.document["cases"]
+        cls.diagrams = json.loads((ROOT / "diagrams.json").read_text(encoding="utf-8"))["diagrams"]
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
 
     def test_twelve_unique_source_grounded_cases(self):
@@ -62,12 +63,35 @@ class ArchitectureLabTests(unittest.TestCase):
             for field in required_lists:
                 self.assertGreaterEqual(len(case[field]), 4, f"{case['case_id']} missing {field}")
 
+    def test_every_case_has_a_valid_architecture_diagram(self):
+        self.assertEqual(
+            {diagram["case_id"] for diagram in self.diagrams},
+            {case["case_id"] for case in self.cases},
+        )
+        valid_types = {"client", "service", "data", "queue", "security", "external"}
+        for diagram in self.diagrams:
+            nodes = diagram["nodes"]
+            node_ids = {node["id"] for node in nodes}
+            self.assertEqual(len(nodes), len(node_ids), diagram["case_id"])
+            self.assertGreaterEqual(len(nodes), 5, diagram["case_id"])
+            self.assertGreaterEqual(len(diagram["edges"]), 4, diagram["case_id"])
+            for node in nodes:
+                self.assertIn(node["type"], valid_types)
+                self.assertGreaterEqual(node["col"], 0)
+                self.assertGreaterEqual(node["row"], 0)
+            for edge in diagram["edges"]:
+                self.assertIn(edge["from"], node_ids)
+                self.assertIn(edge["to"], node_ids)
+
     def test_index_contains_architecture_lab_and_persistence(self):
         for marker in (
             'id="architectureView"',
             'id="caseList"',
             'id="caseDetail"',
             "fetch('architectures.json')",
+            "fetch('diagrams.json')",
+            "renderArchitectureDiagram",
+            'class="architecture-diagram"',
             "fdeArchitectureProgress1",
             "Reveal source-backed solution",
             "clusterArchitectureQuestions",
