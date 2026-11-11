@@ -474,6 +474,92 @@
         "canonical_url": "https://github.com/Azure/Integration-Services-Landing-Zone-Accelerator/blob/main/docs/scenario2/Reference%20Implementation.md",
         "note": "Microsoft reference implementation connecting ServiceNow, Service Bus, Azure Functions, Teams automation, and a webhook callback."
       }
+    },
+    {
+      "case_id": "fde-code-sandbox-07",
+      "title": "Secure Coding Platform and Execution Sandbox",
+      "difficulty": "Advanced",
+      "category": "Secure Compute and Queue-Based Scaling",
+      "customer_scenario": "An interview-practice company needs a LeetCode-style platform that runs untrusted Python, JavaScript, and Java submissions, returns useful feedback within five seconds, and supports competitions with up to 100,000 concurrent users.",
+      "discovery_questions": [
+        "Which languages, compiler versions, libraries, test formats, and interactive workloads must the platform support?",
+        "Does the five-second target apply at p50, p95, or p99, and may overloaded competitions return an asynchronous submission ID?",
+        "What are the peak submission rate, burst duration, per-language mix, code and output limits, and acceptable queue recovery time?",
+        "How strong must tenant isolation be, and may submitted code access the network, filesystem, secrets, or other submissions?",
+        "How are hidden test cases, competition integrity, plagiarism controls, result retention, and appeals handled?"
+      ],
+      "requirements_constraints": [
+        "Treat every submission as hostile and execute it in a fresh or securely reset sandbox with no shared user state.",
+        "Enforce wall-clock, CPU, memory, process, file, syscall, network-egress, input, and output limits outside the submitted process.",
+        "Persist the submission before execution, use a durable queue for bursts, and expose an idempotent status API.",
+        "Protect hidden tests and expected outputs from the browser and from unrestricted sandbox access.",
+        "Autoscale pre-warmed language pools from queue depth and age while preserving capacity and fairness for competitions.",
+        "Trace submission ID, queue delay, sandbox startup, compile time, test time, verdict, resource use, and failure reason without logging source code by default."
+      ],
+      "component_flow": [
+        "The web client loads problem metadata and language stubs through Azure Front Door and an authenticated API; hidden tests remain in protected storage.",
+        "POST /submissions validates language and size, applies rate limits and an Idempotency-Key, stores a pending submission, and publishes its ID to an Azure Service Bus language queue.",
+        "A dispatcher selects a compatible immutable runtime image and leases a pre-warmed Azure Container Apps sandbox with deny-by-default egress and strict resource limits.",
+        "The runner injects the code and signed test bundle, compiles if required, executes each test under a hard deadline, bounds stdout and stderr, and destroys or resets the sandbox after use.",
+        "The worker records the verdict and metrics, publishes a completion event, and updates the competition score in Azure Managed Redis using an atomic sorted-set operation.",
+        "The client polls GET /submissions/:id or receives a server-sent event; autoscaling and admission control react to queue depth, oldest-message age, and remaining competition capacity."
+      ],
+      "tradeoffs": [
+        "Warm reusable pools reduce startup latency and cost, but a fresh strongly isolated sandbox per submission provides a safer default for hostile code.",
+        "Synchronous execution is simple at low load; a durable queue absorbs contest bursts but requires polling or push updates and makes the five-second SLO capacity-dependent.",
+        "Containers are lighter and faster than full virtual machines, while Hyper-V-isolated sandboxes or microVMs strengthen kernel isolation at additional cost.",
+        "Disabling all egress reduces exfiltration and abuse risk but prevents problems that intentionally require approved network dependencies.",
+        "Redis sorted sets make top-N leaderboard reads fast, but the durable submission database remains the source of truth for rebuilds and dispute resolution."
+      ],
+      "failure_security_challenges": [
+        "A kernel escape, fork bomb, decompression bomb, infinite loop, or output flood attempts to affect the host or neighboring submissions.",
+        "A malicious submission tries to read hidden tests, environment credentials, mounted files, metadata endpoints, or another user's workspace.",
+        "A competition burst exhausts warm sandboxes, grows queue age beyond five seconds, or lets one user monopolize capacity.",
+        "A worker completes execution but times out before recording the result, so retries can run the same submission twice.",
+        "Redis, Service Bus, or a regional outage leaves leaderboard and submission state temporarily inconsistent and requires replay or rebuild."
+      ],
+      "implementation_plan": [
+        {
+          "step": 1,
+          "action": "Define the submission state machine, APIs, verdict contract, language matrix, latency SLO, threat model, quotas, fairness policy, and hidden-test boundary."
+        },
+        {
+          "step": 2,
+          "action": "Build one end-to-end Python path with durable submission storage, Service Bus, an immutable sandbox image, hard resource limits, deny-default egress, and bounded output."
+        },
+        {
+          "step": 3,
+          "action": "Add idempotent retries, pre-warmed pools, queue-based autoscaling, per-user admission control, completion updates, Redis leaderboard projections, and rebuild tooling."
+        },
+        {
+          "step": 4,
+          "action": "Load-test 100,000-user contest bursts and red-team escapes, secret access, hidden-test theft, fork bombs, infinite loops, output floods, duplicate delivery, and regional failure."
+        }
+      ],
+      "spoken_answer_60_seconds": "I would separate the control plane from hostile execution. The API validates and durably stores each submission, then publishes its ID to a Service Bus queue partitioned by runtime. Workers lease pre-warmed, strongly isolated Azure Container Apps sandboxes built from immutable language images. Each sandbox has no credentials, deny-by-default egress, an ephemeral filesystem, and external CPU, memory, process, output, and wall-clock limits. Hidden tests are injected only for that run, and the sandbox is destroyed or securely reset afterward. Results are written idempotently to the submission store; clients poll or receive a completion event. Redis sorted sets serve the live leaderboard, but durable results remain the rebuildable source of truth. I would scale from queue age as well as depth, reserve competition capacity, and prove the design with burst tests and adversarial escape attempts.",
+      "provenance_note": "The source_backed_facts summarize the requested Hello Interview LeetCode breakdown. The Azure service mapping, stronger sandbox controls, idempotency model, observability, fairness policy, and validation plan are adapted or proposed for this FDE lab.",
+      "source_backed_facts": [
+        "The breakdown prioritizes availability, secure isolation for user code, results within five seconds, and competitions with 100,000 users.",
+        "It compares virtual machines, containers, and serverless functions, and proceeds with containers for lightweight isolation and lower startup latency.",
+        "Its security deep dive calls for a read-only filesystem, CPU and memory bounds, explicit timeouts, disabled network access, and restricted system calls.",
+        "It proposes a queue between the API and execution containers to buffer peak submissions and an asynchronous status endpoint for result polling.",
+        "It proposes a Redis sorted set for fast competition leaderboard reads while retaining submission results in the main database."
+      ],
+      "adapted_scenario_proposed_additions": [
+        "Azure Service Bus, Azure Managed Redis, Front Door, and Azure Container Apps sandboxes are proposed Azure equivalents rather than services named by the source.",
+        "Fresh Hyper-V-isolated sandboxes, deny-default egress, signed hidden-test bundles, bounded output, and credential-free runtimes are proposed defense-in-depth controls.",
+        "Idempotency keys, durable submission states, queue-age autoscaling, admission control, fairness, and leaderboard rebuilds are proposed production additions.",
+        "The exact APIs, telemetry fields, red-team cases, and capacity-validation plan are adapted for active FDE interview practice."
+      ],
+      "source": {
+        "title": "Design a Coding Platform Like LeetCode",
+        "canonical_url": "https://www.hellointerview.com/learn/system-design/problem-breakdowns/leetcode"
+      },
+      "supporting_implementation": {
+        "title": "Azure Container Apps Sandboxes samples",
+        "canonical_url": "https://github.com/Azure-Samples/azure-container-apps-sandboxes",
+        "note": "Microsoft samples for secure isolated sandboxes, including code-interpreter, coding-agent, custom-container, egress, and lifecycle scenarios."
+      }
     }
   ]
 }

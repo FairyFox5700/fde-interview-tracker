@@ -13,7 +13,7 @@ The updater uses only the Python standard library and fails safely if Aced retur
 ## Features
 
 - Daily-refreshed FDE question dataset
-- Architecture Lab with six source-backed Azure case-study clusters
+- Architecture Lab with seven source-backed Azure case-study clusters
 - Existing system-design questions automatically mapped into clusters and deduplicated so one architecture prepares you for several variants
 - Design-first solution reveal with discovery, constraints, flow, trade-offs, failures, implementation plan, and a 60-second answer
 - Clear labels separating published facts from adapted or proposed design choices

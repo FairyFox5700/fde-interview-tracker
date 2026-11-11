@@ -13,13 +13,22 @@ class ArchitectureLabTests(unittest.TestCase):
         cls.cases = cls.document["cases"]
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
 
-    def test_six_unique_source_grounded_cases(self):
-        self.assertEqual(len(self.cases), 6)
-        self.assertEqual(len({case["case_id"] for case in self.cases}), 6)
+    def test_seven_unique_source_grounded_cases(self):
+        self.assertEqual(len(self.cases), 7)
+        self.assertEqual(len({case["case_id"] for case in self.cases}), 7)
         for case in self.cases:
             self.assertTrue(case["source"]["canonical_url"].startswith("https://"))
             self.assertGreaterEqual(len(case["source_backed_facts"]), 3)
             self.assertGreaterEqual(len(case["adapted_scenario_proposed_additions"]), 2)
+
+    def test_secure_code_execution_case_uses_requested_source(self):
+        case = next(case for case in self.cases if case["case_id"] == "fde-code-sandbox-07")
+        self.assertEqual(case["title"], "Secure Coding Platform and Execution Sandbox")
+        self.assertEqual(
+            case["source"]["canonical_url"],
+            "https://www.hellointerview.com/learn/system-design/problem-breakdowns/leetcode",
+        )
+        self.assertIn("Azure Container Apps", case["supporting_implementation"]["title"])
 
     def test_every_case_has_complete_fde_practice_sections(self):
         required_lists = (
