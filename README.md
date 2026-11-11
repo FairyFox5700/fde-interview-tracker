@@ -13,9 +13,9 @@ The updater uses only the Python standard library and fails safely if Aced retur
 ## Features
 
 - Daily-refreshed FDE question dataset
-- Architecture Lab with seven source-backed Azure case-study clusters
-- Existing system-design questions automatically mapped into clusters and deduplicated so one architecture prepares you for several variants
-- Design-first solution reveal with discovery, constraints, flow, trade-offs, failures, implementation plan, and a 60-second answer
+- Architecture Lab with one full source-backed case for each of the 12 current system-design questions
+- Exact question coverage is validated against the daily-refreshed tracker dataset
+- Hello Interview–style flow: understanding the problem, functional and non-functional requirements, entities, APIs, high-level design, deep dives, and level expectations
 - Clear labels separating published facts from adapted or proposed design choices
 - Links to the original Microsoft architecture and runnable implementation where available
 - Independent Architecture Lab progress saved in the browser

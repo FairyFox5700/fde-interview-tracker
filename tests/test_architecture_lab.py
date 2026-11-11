@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -13,35 +14,51 @@ class ArchitectureLabTests(unittest.TestCase):
         cls.cases = cls.document["cases"]
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
 
-    def test_seven_unique_source_grounded_cases(self):
-        self.assertEqual(len(self.cases), 7)
-        self.assertEqual(len({case["case_id"] for case in self.cases}), 7)
+    def test_twelve_unique_source_grounded_cases(self):
+        self.assertEqual(len(self.cases), 12)
+        self.assertEqual(len({case["case_id"] for case in self.cases}), 12)
         for case in self.cases:
             self.assertTrue(case["source"]["canonical_url"].startswith("https://"))
+            if case.get("supporting_implementation"):
+                self.assertTrue(
+                    case["supporting_implementation"]["canonical_url"].startswith("https://")
+                )
             self.assertGreaterEqual(len(case["source_backed_facts"]), 3)
             self.assertGreaterEqual(len(case["adapted_scenario_proposed_additions"]), 2)
 
-    def test_secure_code_execution_case_uses_requested_source(self):
-        case = next(case for case in self.cases if case["case_id"] == "fde-code-sandbox-07")
-        self.assertEqual(case["title"], "Secure Coding Platform and Execution Sandbox")
-        self.assertEqual(
-            case["source"]["canonical_url"],
-            "https://www.hellointerview.com/learn/system-design/problem-breakdowns/leetcode",
-        )
-        self.assertIn("Azure Container Apps", case["supporting_implementation"]["title"])
+    def test_every_current_system_design_question_has_exactly_one_case(self):
+        match = re.search(r"const D=(\[.*?\]),K=", self.html, re.DOTALL)
+        if match is None:
+            self.fail("embedded question dataset not found")
+        questions = json.loads(match.group(1))
+        system_design = {
+            question["url"]: question
+            for question in questions
+            if "system-design" in question["categories"]
+        }
+        case_questions = {case["source_question"]["url"]: case for case in self.cases}
+        self.assertEqual(set(case_questions), set(system_design))
+        for url, question in system_design.items():
+            self.assertEqual(case_questions[url]["source_question"]["title"], question["title"])
 
-    def test_every_case_has_complete_fde_practice_sections(self):
+    def test_every_case_has_complete_hello_interview_sections(self):
         required_lists = (
             "discovery_questions",
-            "requirements_constraints",
+            "functional_requirements",
+            "non_functional_requirements",
+            "core_entities",
+            "api_interface",
             "component_flow",
             "tradeoffs",
             "failure_security_challenges",
+            "deep_dives",
             "implementation_plan",
         )
         for case in self.cases:
             self.assertTrue(case["customer_scenario"])
             self.assertTrue(case["spoken_answer_60_seconds"])
+            self.assertTrue(case["level_expectations"]["mid_level"])
+            self.assertTrue(case["level_expectations"]["senior"])
             for field in required_lists:
                 self.assertGreaterEqual(len(case[field]), 4, f"{case['case_id']} missing {field}")
 
@@ -57,6 +74,14 @@ class ArchitectureLabTests(unittest.TestCase):
             'id="labQuestionTotal"',
             "safeUrl",
             'aria-label="Search architecture cases"',
+            "Understanding the problem",
+            "Functional requirements",
+            "Non-functional requirements",
+            "Core entities",
+            "API / system interface",
+            "High-level design",
+            "Potential deep dives",
+            "What is expected at each level?",
         ):
             self.assertIn(marker, self.html)
 
