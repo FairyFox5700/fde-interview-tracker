@@ -13,6 +13,9 @@ The updater uses only the Python standard library and fails safely if Aced retur
 ## Features
 
 - Daily-refreshed FDE question dataset
+- Expandable interview answers for every current Design, AI, Coding, and Behavioral question
+- Question-specific C#-oriented coding solutions and production-focused AI guidance
+- Truthful customizable STAR templates for experience-based questions; placeholders are never presented as personal facts
 - Architecture Lab with one full source-backed case for each of the 12 current system-design questions
 - Exact question coverage is validated against the daily-refreshed tracker dataset
 - Hello Interview–style flow: understanding the problem, functional and non-functional requirements, entities, APIs, high-level design, deep dives, and level expectations
