@@ -1,0 +1,124 @@
+{
+  "problems": [
+    {
+      "title": "Product of Array Except Self",
+      "url": "https://leetcode.com/problems/product-of-array-except-self/",
+      "difficulty": "Medium",
+      "tags": ["Array", "Prefix/Suffix Product"],
+      "approach": "State the constraint out loud first: no division, O(n) time, O(1) extra space excluding the output array. Then build the answer in two passes over the same output array: a left-to-right pass that fills each slot with the running product of everything to its left, followed by a right-to-left pass that multiplies in the running product of everything to its right. Name the invariant before you touch code: output[i] always equals left-product(i) * right-product(i).",
+      "prompt": "I'm solving 'Product of Array Except Self' in an interview and can't use division. I think prefix/suffix products are the key. Don't give me the solution or code — instead ask me to state the invariant for each pass out loud, and quiz me on how to do it in O(1) extra space excluding the output array."
+    },
+    {
+      "title": "Insert Delete GetRandom O(1)",
+      "url": "https://leetcode.com/problems/insert-delete-getrandom-o1/",
+      "difficulty": "Medium",
+      "tags": ["Design", "Hash Table", "Array"],
+      "approach": "Combine a dynamic array (for O(1) random access by index) with a hash map from value to its index in that array. Insert appends to the array and records the index. GetRandom picks a random array index. The tricky part is delete: to stay O(1), swap the element being removed with the last element in the array, update the swapped element's index in the map, then pop the last slot — never shift elements.",
+      "prompt": "I'm designing 'Insert Delete GetRandom O(1)'. I know I need a hash map plus an array. Without naming the technique, ask me how I can delete an arbitrary element from the middle of an array in O(1) time without shifting anything, and have me reason through what has to be updated in the hash map afterward."
+    },
+    {
+      "title": "H-Index",
+      "url": "https://leetcode.com/problems/h-index/",
+      "difficulty": "Medium",
+      "tags": ["Sorting", "Counting"],
+      "approach": "Start from the brute-force idea: sort citations descending and find the largest index i such that citations[i] >= i+1 — that's the h-index. Then push toward the O(n) counting-sort variant: bucket citation counts capped at n, then scan from the top bucket down, accumulating a running count until it reaches the candidate h value, avoiding the full sort.",
+      "prompt": "For 'H-Index' I already have the sort-based O(n log n) solution. Instead of explaining the O(n) counting/bucket approach, ask me what bounds the citation counts can be capped at (given there are only n papers) and have me derive the bucket-scan logic myself."
+    },
+    {
+      "title": "Jump Game II",
+      "url": "https://leetcode.com/problems/jump-game-ii/",
+      "difficulty": "Medium",
+      "tags": ["Greedy", "BFS-style layers"],
+      "approach": "Treat this as a greedy, level-by-level (BFS-like) expansion: track the current boundary you can reach with the jumps used so far, and the farthest boundary reachable from any position within the current level. When you reach the current boundary, you must take another jump, so increment the count and move the boundary to the farthest value tracked.",
+      "prompt": "I'm working through 'Jump Game II' and thinking about a greedy BFS-layer approach rather than DP. Without solving it for me, ask me to define what 'current end of reach' and 'farthest reach so far' mean at each index, and challenge me to explain why incrementing jumps only at the boundary is optimal."
+    },
+    {
+      "title": "Jump Game",
+      "url": "https://leetcode.com/problems/jump-game/",
+      "difficulty": "Medium",
+      "tags": ["Greedy"],
+      "approach": "Single left-to-right pass tracking the farthest index reachable so far. At each index, if the current index is beyond that farthest-reach value, the end is unreachable; otherwise update farthest-reach with index + nums[index].",
+      "prompt": "For 'Jump Game', ask me to justify — with a small example — why tracking a single running 'farthest reachable index' while scanning left to right is sufficient to prove reachability, instead of telling me the greedy rule yourself."
+    },
+    {
+      "title": "Best Time to Buy and Sell Stock II",
+      "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock-ii/",
+      "difficulty": "Medium",
+      "tags": ["Greedy"],
+      "approach": "Allowing unlimited transactions, the optimal strategy is to capture every positive day-over-day price increase: sum max(0, price[i] - price[i-1]) across the array. This is equivalent to buying at the start of every uphill run and selling at its peak.",
+      "prompt": "I'm solving the unlimited-transactions version of the stock problem. Instead of stating the rule, ask me to prove why summing every positive consecutive price difference gives the same total profit as buying low and selling high on each uphill segment."
+    },
+    {
+      "title": "Best Time to Buy and Sell Stock",
+      "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/",
+      "difficulty": "Easy",
+      "tags": ["Array", "Single Pass"],
+      "approach": "Single pass tracking the minimum price seen so far and the best profit achievable by selling today at that minimum. Update the running minimum and the running best profit together as you scan once.",
+      "prompt": "For the single-transaction 'Best Time to Buy and Sell Stock', ask me what one running value I need to track while scanning the array once, and have me explain why updating it before computing profit at each step is both necessary and sufficient — don't just tell me it's the running minimum."
+    },
+    {
+      "title": "Rotate Array",
+      "url": "https://leetcode.com/problems/rotate-array/",
+      "difficulty": "Medium",
+      "tags": ["Array", "Reversal Trick"],
+      "approach": "Rotate in place using the three-reversal technique for O(1) extra space: reverse the whole array, then reverse the first k elements, then reverse the remaining n-k elements. Confirm k = k % n first to handle k larger than the array length.",
+      "prompt": "I'm rotating an array in place and want O(1) extra space. Walk me through deriving the three-reversal technique step by step with a small example (don't just name it), and ask me why taking k modulo n matters."
+    },
+    {
+      "title": "Majority Element",
+      "url": "https://leetcode.com/problems/majority-element/",
+      "difficulty": "Easy",
+      "tags": ["Boyer-Moore Voting"],
+      "approach": "Boyer-Moore majority vote: maintain a candidate and a counter starting at 0. For each number, if the counter is 0, set it as the new candidate; increment the counter if the number matches the candidate, otherwise decrement. The surviving candidate is guaranteed to be the majority element given the problem's guarantee one exists.",
+      "prompt": "For 'Majority Element', ask me what should happen to a running counter as I scan the array and compare each value to a 'current candidate' — guide me toward Boyer-Moore voting through questions rather than naming the algorithm."
+    },
+    {
+      "title": "Remove Duplicates from Sorted Array II",
+      "url": "https://leetcode.com/problems/remove-duplicates-from-sorted-array-ii/",
+      "difficulty": "Medium",
+      "tags": ["Two Pointers", "In-place"],
+      "approach": "Two-pointer in-place overwrite allowing up to two occurrences of each value: keep a write pointer and only copy the current element forward if it differs from the element two positions before the write pointer (nums[write-2]). This generalizes the single-duplicate version's write-pointer pattern.",
+      "prompt": "I'm extending 'Remove Duplicates from Sorted Array' to allow at most two copies in place. Ask me what comparison I should make against the write pointer to decide whether to keep the current element, instead of giving me the condition directly."
+    },
+    {
+      "title": "Remove Duplicates from Sorted Array",
+      "url": "https://leetcode.com/problems/remove-duplicates-from-sorted-array/",
+      "difficulty": "Easy",
+      "tags": ["Two Pointers", "In-place"],
+      "approach": "Two-pointer in-place overwrite: a read pointer scans the array while a write pointer only advances (and copies the value) when a new, distinct value is found compared to the last written value.",
+      "prompt": "For in-place duplicate removal from a sorted array, ask me to define the roles of my two pointers out loud before I write any code, rather than explaining the read/write pointer pattern to me."
+    },
+    {
+      "title": "Remove Element",
+      "url": "https://leetcode.com/problems/remove-element/",
+      "difficulty": "Easy",
+      "tags": ["Two Pointers", "In-place"],
+      "approach": "Overwrite in place with a write pointer that only advances when the current value is not equal to the target to remove. Order of remaining elements does not need to be preserved, which simplifies the pointer logic.",
+      "prompt": "For 'Remove Element', ask me to explain why the relative order of remaining elements doesn't need to be preserved, and how that assumption changes (or simplifies) a straightforward two-pointer in-place solution — don't solve it outright."
+    },
+    {
+      "title": "Merge Sorted Array",
+      "url": "https://leetcode.com/problems/merge-sorted-array/",
+      "difficulty": "Easy",
+      "tags": ["Two Pointers", "Merge"],
+      "approach": "Merge from the back: use three pointers starting at the last filled positions of nums1 and nums2, plus the last index of nums1's full capacity, placing the larger of the two current values at the end and moving inward. Merging from the back avoids overwriting elements in nums1 that haven't been compared yet.",
+      "prompt": "I'm merging two sorted arrays in place where nums1 has extra trailing space. Instead of explaining it, ask me why merging from the back (rather than the front) avoids overwriting unprocessed elements, and have me walk through the three-pointer setup myself."
+    },
+    {
+      "title": "Swap Nodes in Pairs",
+      "url": "https://leetcode.com/problems/swap-nodes-in-pairs/",
+      "difficulty": "Medium",
+      "tags": ["Linked List", "Dummy Node"],
+      "approach": "Use a dummy node pointing to the head to simplify swapping at the list's start. Iterate with a 'previous' pointer; for each pair, re-point previous.next, the second node's next, and the first node's next in the correct order so the list stays connected, then advance previous to the end of the swapped pair. A recursive swap-and-recurse is an equally valid alternative.",
+      "prompt": "For 'Swap Nodes in Pairs', ask me to draw out (in words) the exact order I need to reassign the three or four pointers involved in swapping one pair, before I write any code — don't list the steps for me."
+    },
+    {
+      "title": "Pow(x, n)",
+      "url": "https://leetcode.com/problems/powx-n/",
+      "difficulty": "Medium",
+      "tags": ["Fast Exponentiation", "Recursion"],
+      "approach": "Fast (binary) exponentiation: recursively compute half the exponent, square the result, and multiply by an extra factor of x if the exponent is odd. Handle a negative exponent by computing 1 / pow(x, -n) and watch for the edge case where n equals the minimum integer value (can't simply negate it).",
+      "prompt": "I'm implementing fast power for Pow(x, n). Ask me to explain why halving the exponent at each recursive step gives O(log n) time instead of O(n), and have me reason through the negative-exponent and odd-exponent edge cases myself rather than giving me the formula."
+    }
+  ]
+}
