@@ -49,7 +49,6 @@ class ArchitectureLabTests(unittest.TestCase):
             "non_functional_requirements",
             "core_entities",
             "api_interface",
-            "component_flow",
             "tradeoffs",
             "failure_security_challenges",
             "deep_dives",
@@ -60,8 +59,40 @@ class ArchitectureLabTests(unittest.TestCase):
             self.assertTrue(case["spoken_answer_60_seconds"])
             self.assertTrue(case["level_expectations"]["mid_level"])
             self.assertTrue(case["level_expectations"]["senior"])
+            self.assertTrue(case["level_expectations"]["staff"])
             for field in required_lists:
                 self.assertGreaterEqual(len(case[field]), 4, f"{case['case_id']} missing {field}")
+
+    def test_every_case_has_a_workflow_based_high_level_design(self):
+        for case in self.cases:
+            self.assertTrue(case.get("what_is_it"), case["case_id"])
+            self.assertGreaterEqual(len(case.get("out_of_scope") or []), 2, case["case_id"])
+            self.assertTrue(case.get("planning_approach"), case["case_id"])
+            self.assertGreaterEqual(len(case.get("capacity_estimation") or []), 4, case["case_id"])
+            for row in case["capacity_estimation"]:
+                for key in ("metric", "estimate", "derivation"):
+                    self.assertTrue(row.get(key), f"{case['case_id']} capacity row missing {key}")
+            workflows = case.get("workflows") or []
+            self.assertEqual(len(workflows), 4, case["case_id"])
+            workflow_names = set()
+            for workflow in workflows:
+                self.assertTrue(workflow.get("name"), case["case_id"])
+                workflow_names.add(workflow["name"])
+                self.assertGreaterEqual(len(workflow.get("steps") or []), 3, case["case_id"])
+                for decision in workflow.get("tech_decisions") or []:
+                    for key in ("decision_title", "chosen", "why_not", "tradeoff"):
+                        self.assertTrue(decision.get(key), f"{case['case_id']} decision missing {key}")
+                    self.assertGreaterEqual(len(decision.get("why") or []), 2, case["case_id"])
+            deep_dives = case.get("deep_dives") or []
+            self.assertEqual(len(deep_dives), 4, case["case_id"])
+            for dive in deep_dives:
+                self.assertIn(dive.get("workflow"), workflow_names, case["case_id"])
+                self.assertTrue(dive.get("problem"), case["case_id"])
+                self.assertTrue(dive.get("math"), case["case_id"])
+                decision = dive.get("tech_decision") or {}
+                for key in ("decision_title", "chosen", "why_not", "tradeoff"):
+                    self.assertTrue(decision.get(key), f"{case['case_id']} deep dive decision missing {key}")
+            self.assertTrue(case.get("final_design_summary"), case["case_id"])
 
     def test_every_case_has_a_valid_architecture_diagram(self):
         self.assertEqual(
@@ -101,11 +132,18 @@ class ArchitectureLabTests(unittest.TestCase):
             "Understanding the problem",
             "Functional requirements",
             "Non-functional requirements",
+            "Below the line",
+            "The set up",
+            "Planning the approach",
+            "Capacity estimation",
             "Core entities",
             "API / system interface",
             "High-level design",
+            "workflow-card",
             "Potential deep dives",
+            "deepdive-card",
             "What is expected at each level?",
+            "Staff+",
         ):
             self.assertIn(marker, self.html)
 
