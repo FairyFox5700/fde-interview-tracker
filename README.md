@@ -31,6 +31,10 @@ The updater uses only the Python standard library and fails safely if Aced retur
 - LeetCode Patterns tracker: 87 classic coding-interview problems tagged by company (one-click "Google only" filter) and by algorithmic pattern (Arrays & Hashing, Two Pointers, Sliding Window, Binary Search, Trees, Graphs, DP, Backtracking, and more) to plan focused practice before SWE round 2-3 coding interviews
 - No backend or account required
 
+## System design template
+
+`docs/system-design-template.md` is the Hello-Interview-style template each Architecture Lab case is written against (Understanding the Problem, Set Up, 4 workflows in High-Level Design, one Deep Dive per workflow, Mid/Senior/Staff+ level expectations). Use it as the starting point when adding or rewriting a case.
+
 ## Local checks
 
 ```bash
