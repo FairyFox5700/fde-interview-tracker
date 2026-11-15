@@ -2112,24 +2112,6 @@
         "How would you revise the forecast after the first two weeks of real usage?",
         "What would make you kill or pause the launch based on early data?"
       ]
-    },
-    {
-      "question_url": "https://www.aced.io/questions/6446/design-sample-generative-models",
-      "question_title": "Design an API that lets a customer sample from large generative models.",
-      "type": "design",
-      "answer": "I would design this as a stateless **generation gateway** in front of the model-serving layer, not a thin proxy, because sampling has distinct cost, latency, and abuse-control needs.\n\n**API shape:** a single `POST /v1/completions` (and a `stream=true` variant over server-sent events or chunked transfer) accepting `model`, `prompt`/`messages`, `max_tokens`, `temperature`, `top_p`, `stop`, and an idempotency key. Streaming is first-class, not bolted on, since most customer-facing uses need token-by-token output for perceived latency.\n\n**Request flow:** authenticate via API key/OAuth, resolve the customer's rate-limit and quota bucket, validate parameters and prompt size against the model's context window, then route to a model-serving pool via a request queue that does continuous batching (grouping concurrent requests sharing a model to maximize GPU utilization). I'd shard by model and by customer tier (dedicated capacity for enterprise, shared pool for self-serve) so one noisy customer can't starve others.\n\n**Critical cross-cutting concerns:** (1) backpressure \u2014 queue depth and per-customer concurrency limits so overload degrades gracefully with 429s instead of timing out silently; (2) cost and quota tracking \u2014 meter tokens in and out per request, enforce budgets before the call, not just after; (3) safety \u2014 run a fast classifier on input and streamed output for policy violations, with the ability to stop a stream mid-generation; (4) determinism/debuggability \u2014 log the exact sampling parameters and a request ID so a customer's output can be reproduced or audited; (5) graceful degradation \u2014 if the primary model pool is saturated, fail over to a smaller model or queue with an explicit wait estimate rather than hard-failing.\n\n**Trade-off I'd highlight:** continuous batching improves throughput significantly but adds a few tens of milliseconds of queueing latency per request; for a low-latency customer tier, I'd carve out a dedicated low-batch-size pool instead of trying to make one pool serve every latency target.",
-      "key_points": [
-        "Stateless gateway over a batched model-serving layer, not a simple proxy",
-        "Streaming (SSE/chunked) is a first-class part of the API, not an add-on",
-        "Continuous batching by model and customer tier to maximize GPU utilization fairly",
-        "Backpressure, token-based quota enforcement, and mid-stream safety checks are core requirements",
-        "Explicit trade-off between batching throughput and per-request latency, solved with tiered pools"
-      ],
-      "follow_ups": [
-        "How would you support function calling or structured output without breaking streaming?",
-        "How do you keep cost attribution accurate when a request is retried or fails mid-stream?",
-        "What happens to in-flight requests when you need to roll out a new model version?"
-      ]
     }
   ]
 }

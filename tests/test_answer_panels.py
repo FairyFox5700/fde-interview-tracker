@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ANSWER_TYPES = {"ai", "behavioral", "coding", "design"}
+ANSWER_TYPES = {"ai", "behavioral", "coding", "design", "untopic"}
 
 
 def is_target_question(question: dict) -> bool:
