@@ -28,6 +28,7 @@ The updater uses only the Python standard library and fails safely if Aced retur
 - New → Practicing → Mastered status cycle
 - Topic, company, status, and text filters
 - Local browser persistence and CSV progress export with clickable source links
+- LeetCode Patterns tracker: 87 classic coding-interview problems tagged by company (one-click "Google only" filter) and by algorithmic pattern (Arrays & Hashing, Two Pointers, Sliding Window, Binary Search, Trees, Graphs, DP, Backtracking, and more) to plan focused practice before SWE round 2-3 coding interviews
 - No backend or account required
 
 ## Local checks
