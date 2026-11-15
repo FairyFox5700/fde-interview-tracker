@@ -1,0 +1,314 @@
+{
+  "projects": [
+    {
+      "title": "Rate Limiter",
+      "url": "https://leetcode.com/project/?detail=rate-limiter",
+      "difficulty": "Easy",
+      "duration": "45min",
+      "tags": ["API Design", "Backend", "Concurrency"],
+      "description": "Build a rate limiter that guards an LLM API gateway. Real concurrency, two policies, pure in-memory design.",
+      "approach": "Clarify the two policies first (e.g. fixed-window vs token-bucket, or per-key vs global) and the concurrency model (will multiple threads/requests hit the same counter structure concurrently?). State the core invariant: a request is admitted only if it doesn't push the tracked count/rate above the configured limit within the current window. Design the data structure per rate-limited key (counter + window timestamp, or token bucket with refill rate), then reason about where locking or atomic operations are required to avoid race conditions under concurrent access, and what happens at window boundaries (reset vs sliding).",
+      "prompt": "I'm building a rate limiter for an LLM API gateway that must support two different policies and real concurrency, in-memory only. Don't give me the implementation — instead ask me to state the correctness invariant per rate-limited key, have me compare fixed-window vs sliding-window vs token-bucket trade-offs out loud, and quiz me on exactly where I need synchronization to avoid race conditions."
+    },
+    {
+      "title": "Comments & Replies",
+      "url": "https://leetcode.com/project/?detail=comments-replies",
+      "difficulty": "Easy",
+      "duration": "45min",
+      "tags": ["Backend", "Database", "System Design"],
+      "description": "Extend a live post system with comments and replies. Design the data model from scratch and build a thread-safe in-memory comment service.",
+      "approach": "Start from the data model: posts have comments, comments can have nested replies (one level or arbitrary depth?). Decide on a flat storage model with parent-pointer references (adjacency list) vs a nested tree, and justify the choice based on expected read patterns (e.g. 'list all replies to a comment' vs 'render a full thread'). Then address thread safety: which operations (add comment, add reply, delete, list) can run concurrently, and what's the minimal locking granularity (per-post lock vs per-comment lock) to keep both correctness and throughput reasonable.",
+      "prompt": "I'm extending a live post system to support comments and threaded replies, designing the data model from scratch with thread safety in mind. Instead of designing it for me, ask me to justify my choice of flat vs nested storage for replies, and challenge me on the locking granularity I'd pick for concurrent writes."
+    },
+    {
+      "title": "URL Shortener Service",
+      "url": "https://leetcode.com/project/?detail=url-shortener",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Backend", "Database", "System Design"],
+      "description": "Design the schema, pick a hashing strategy, and implement short code generation and redirects with expiry and access tracking.",
+      "approach": "Separate three concerns out loud: (1) schema — what fields does a shortened URL record need (original URL, short code, created-at, expiry, access count/log)? (2) short code generation — base62 encoding of an auto-increment ID vs hashing the URL vs random generation with collision checks, and the trade-offs of each (predictability, collision handling, code length). (3) redirect path — look up by short code, check expiry before redirecting, and increment/record access asynchronously so it doesn't slow down the redirect.",
+      "prompt": "I'm designing a URL shortener with expiry and access tracking. Instead of picking the short-code strategy for me, ask me to compare base62-encoded auto-increment IDs vs hash-based codes vs random codes with collision retries, and have me explain how I'd track access counts without adding latency to the redirect path."
+    },
+    {
+      "title": "Reservation Service Incident",
+      "url": "https://leetcode.com/project/?detail=reservation-service",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["AI Coding", "Debugging", "Concurrency"],
+      "description": "Investigate and fix state inconsistency issues in a production reservation service, and safely repair the affected production data.",
+      "approach": "This is a debugging task, so start with reproduction: find the exact sequence of operations that produces an inconsistent state (e.g. two reservations for one slot, or a slot marked both free and booked). Narrow down whether the bug is a race condition (missing lock/atomic check), a logic error (wrong order of state transitions), or a data repair issue (already-corrupted records need a one-time fix separate from the code fix). Fix the root cause first, then design a safe, idempotent repair script for existing bad data — never mutate state blindly.",
+      "prompt": "I'm debugging a reservation service with state inconsistency bugs and need to safely repair production data afterward. Don't diagnose it for me — ask me to describe the exact repro steps that produce an inconsistent state, have me distinguish whether it's a race condition vs a logic bug, and quiz me on how to make the data-repair script idempotent and safe to re-run."
+    },
+    {
+      "title": "File Deduplication",
+      "url": "https://leetcode.com/project/?detail=file-deduplication",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["File I/O", "Hashing", "Memory Management"],
+      "description": "Build a production-grade file deduplication pipeline with collision-safe hashing, exact content comparison, concurrent processing, and failure isolation.",
+      "approach": "Two-stage dedup: a fast hash (e.g. content hash) groups candidate duplicates cheaply, then an exact byte-by-byte comparison confirms true duplicates within each hash bucket (hash collisions are possible and must not cause false dedup). For concurrency, decide how multiple worker threads/processes can hash and compare files in parallel without duplicating work or corrupting shared state (e.g. a concurrent map from hash to candidate file list). For failure isolation, make sure one file's I/O error or corruption doesn't abort the whole batch — isolate and report per-file failures.",
+      "prompt": "I'm building a collision-safe file dedup pipeline with concurrent processing. Ask me why a fast hash alone isn't sufficient to confirm duplicates and what exact-comparison step I need afterward, then quiz me on how I'd structure concurrent hashing without duplicating work, and how to isolate a single file's failure from the rest of the batch — don't just tell me the design."
+    },
+    {
+      "title": "Feature Flag",
+      "url": "https://leetcode.com/project/?detail=feature-flag",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Hashing", "Locking", "Deterministic Assignment"],
+      "description": "Build a deterministic feature flag and A/B experiment assignment service with rule-based targeting and percentage rollouts.",
+      "approach": "The key requirement is determinism: the same user must always get the same assignment for a given flag/experiment, without storing a record for every user. Achieve this with a stable hash of (user_id, flag_id or experiment salt) mapped into a bucket range (e.g. 0-99), then compare the bucket against the rollout percentage or rule thresholds. Layer rule-based targeting (e.g. user attributes must match a condition) on top of the hash-bucket check, and handle flag updates (does changing the rollout % reshuffle existing users, and is that acceptable?).",
+      "prompt": "I'm building a deterministic feature flag assignment service using hashing instead of storing per-user records. Ask me to explain why I need a stable hash of user ID plus a flag-specific salt, and how percentage rollout and rule-based targeting interact — quiz me instead of handing me the bucketing formula."
+    },
+    {
+      "title": "Image Transform Pipeline",
+      "url": "https://leetcode.com/project/?detail=image-transform-pipeline",
+      "difficulty": "Medium",
+      "duration": "45min",
+      "tags": ["Concurrency", "Task Scheduling", "Memory Management"],
+      "description": "Build a concurrent in-memory image transformation pipeline with deterministic ordering, failure isolation, FIFO admission, and bounded memory usage.",
+      "approach": "The hard constraint is deterministic ordering despite concurrent processing: results must come out in the same order they were submitted (FIFO), even though worker threads may finish transforms out of order. Use a bounded queue for admission (backpressure when memory limits are hit) and a reordering buffer keyed by submission sequence number to hold completed-but-out-of-order results until it's their turn to be emitted. Failure isolation means one image's transform error shouldn't block or crash the pipeline for others — the error should be reported in its correct order slot.",
+      "prompt": "I'm building an image transform pipeline that processes concurrently but must emit results in strict FIFO order with bounded memory. Ask me how I'd buffer out-of-order completions until their turn comes up, and how I'd cap memory usage via admission control — don't explain the sequence-number reordering technique to me directly."
+    },
+    {
+      "title": "Loan Lifecycle & Balance Management",
+      "url": "https://leetcode.com/project/?detail=loan-management",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["AI Coding", "Debugging", "Concurrency"],
+      "description": "Repair a production-style in-memory loan service with correct loan creation, funding, repayment, balance transfers, and concurrent state transitions.",
+      "approach": "Map out the loan state machine first (created → funded → repaying → closed, or similar) and identify which transitions are currently broken or allow invalid states. For balance operations (funding, repayment, transfers), the key correctness property is that money is never created or destroyed — every debit must have a matching credit, ideally within a single atomic operation. For concurrency, check whether simultaneous repayments or transfers on the same loan can race and leave balances inconsistent, and what locking or compare-and-swap protects the critical sections.",
+      "prompt": "I'm repairing a loan lifecycle service with concurrent balance bugs. Ask me to draw out the valid state transitions for a loan before I touch any code, and have me explain the invariant that money moved in a transfer must balance exactly — then quiz me on where concurrent repayments could race, instead of pointing out the bug yourself."
+    },
+    {
+      "title": "Return Risk Assessment",
+      "url": "https://leetcode.com/project/?detail=return-fraud-risk",
+      "difficulty": "Easy",
+      "duration": "45min",
+      "tags": ["AI Coding", "Debugging", "Input Validation"],
+      "description": "Build a deterministic return risk engine with rule-based scoring, boundary handling, batch evaluation, and strict input validation.",
+      "approach": "Treat this like a rules-engine design: each risk rule should be an independent, composable function that contributes a score or flag, so rules can be added/removed without touching the orchestration logic. Pay close attention to boundary handling (is a threshold inclusive or exclusive — off-by-one errors are the most common bug class here) and validate all inputs strictly before scoring (reject malformed records early rather than letting bad data silently produce wrong scores). For batch evaluation, make sure one bad record doesn't abort the whole batch — isolate errors per record.",
+      "prompt": "I'm building a deterministic return risk scoring engine with strict input validation and batch evaluation. Ask me to define each scoring rule as an independent function first, then grill me on boundary conditions (inclusive vs exclusive thresholds) and how I isolate one bad input from failing an entire batch — don't just list the rules for me."
+    },
+    {
+      "title": "Comment Moderation",
+      "url": "https://leetcode.com/project/?detail=review-moderation",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["AI Coding", "Debugging", "Input Validation"],
+      "description": "Repair an in-memory comment service with content validation, state management, concurrent writes, and failure isolation.",
+      "approach": "Separate validation (is the comment content well-formed / passes moderation rules before it's accepted) from state transitions (pending → approved/rejected → visible). Identify where concurrent writes could cause lost updates — e.g. two moderators approving/rejecting the same comment simultaneously — and what check-then-act race conditions need a lock or atomic compare-and-swap. Failure isolation means a bug in moderating one comment shouldn't corrupt the state of others being processed in the same batch.",
+      "prompt": "I'm repairing a comment moderation service with concurrent write bugs. Ask me to separate input validation from state transition logic out loud, then challenge me to find the check-then-act race condition in concurrent moderation actions — don't name the race condition for me."
+    },
+    {
+      "title": "Retry-Safe Issue Service",
+      "url": "https://leetcode.com/project/?detail=issue-creation-api",
+      "difficulty": "Hard",
+      "duration": "75min",
+      "tags": ["API Design", "Idempotency", "Concurrency"],
+      "description": "Build an issue service with authorization, idempotent creation, optimistic concurrency control, and pagination, exposed through a complete HTTP API.",
+      "approach": "Idempotent creation means a client can safely retry a create request (e.g. after a timeout) without creating a duplicate — typically done via a client-supplied idempotency key stored alongside the created resource, so a repeated request with the same key returns the original result instead of creating a new one. Optimistic concurrency control (e.g. a version/ETag field) prevents two concurrent updates from silently overwriting each other — a write is rejected if the version doesn't match what the client last read. Authorization must be checked before any mutation, and pagination should use a stable cursor rather than offset to avoid skipping/duplicating items when the underlying data changes.",
+      "prompt": "I'm designing a retry-safe issue API with idempotent creation and optimistic concurrency control. Ask me to explain how an idempotency key prevents duplicate creation on retry, and how a version field rejects a stale concurrent update — quiz me on both mechanisms rather than describing them, and ask why cursor-based pagination is safer than offset-based here."
+    },
+    {
+      "title": "Personalized Movie Recommendation",
+      "url": "https://leetcode.com/project/?detail=movie-recommendations",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["AI Coding", "Debugging", "Recommender Systems"],
+      "description": "Repair a deterministic movie recommendation system based on user ratings and watch history, including candidate filtering, genre preference scoring, ranking, and result isolation.",
+      "approach": "Break the pipeline into stages and verify each independently: (1) candidate filtering — exclude already-watched movies and anything failing basic eligibility; (2) scoring — compute a genre preference score from the user's rating/watch history (weighted average or similar), and check this is deterministic (same inputs always produce the same score, no reliance on unordered map iteration, etc.); (3) ranking — sort candidates by score with a defined, stable tie-break rule. Result isolation means one user's recommendation computation must not leak or mutate shared state used by another user's request.",
+      "prompt": "I'm repairing a deterministic movie recommendation system with a bug somewhere in candidate filtering, scoring, or ranking. Ask me to verify each pipeline stage independently and explain what could make the scoring non-deterministic (e.g. unordered iteration), and challenge me to identify where shared state could leak between two users' requests — don't locate the bug for me."
+    },
+    {
+      "title": "Keyword and User Blocking",
+      "url": "https://leetcode.com/project/?detail=keyword-user-blocklists",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Input Validation", "State Management", "Concurrency"],
+      "description": "Implement a content admission service with keyword matching, user blocking, strike tracking, and concurrency safety.",
+      "approach": "Decide the keyword matching strategy (exact word match vs substring vs case-insensitive, and whether it needs to scale to many keywords efficiently via a trie or set lookup). Design strike tracking as a counter per user that triggers blocking once a threshold is crossed, and make sure incrementing the strike counter and checking the threshold happen atomically under concurrent submissions from the same user. State management should clearly separate 'content rejected due to keyword' from 'user blocked due to accumulated strikes' as two distinct enforcement paths.",
+      "prompt": "I'm building a content admission service with keyword blocking and strike-based user blocking under concurrency. Ask me how I'd efficiently match against many blocked keywords, and have me explain why incrementing a strike counter and checking its threshold must be a single atomic step rather than two separate operations — don't just state the answer."
+    },
+    {
+      "title": "Persistent Private Watchlists",
+      "url": "https://leetcode.com/project/?detail=movie-watchlists",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["AI Coding", "Debugging", "Transactions"],
+      "description": "Repair a SQLite-backed private watchlist service with correct ownership checks, persistence, movie membership management, duplicate handling, and safe deletion.",
+      "approach": "Ownership checks must happen on every read/write (a user should never see or modify another user's watchlist) — verify this is enforced at the query level, not just in application logic that could be bypassed. For duplicate handling, decide whether adding an already-present movie is a no-op, an error, or silently ignored, and make sure the database enforces this via a unique constraint rather than relying on an application-level check-then-insert (which can race). Safe deletion means removing a movie from the watchlist should be transactional and shouldn't fail silently or leave partial state if interrupted.",
+      "prompt": "I'm repairing a SQLite-backed watchlist service with ownership, duplicate-handling, and deletion bugs. Ask me whether ownership checks are enforced at the query/schema level or only in application code, and whether duplicate membership is prevented by a unique constraint versus a racy check-then-insert — quiz me on the transactional boundaries for each operation rather than listing the fixes."
+    },
+    {
+      "title": "Password Reset",
+      "url": "https://leetcode.com/project/?detail=password-reset",
+      "difficulty": "Easy",
+      "duration": "45min",
+      "tags": ["AI Coding", "Debugging", "Configuration Management"],
+      "description": "Repair a deterministic password reset service with correct configuration loading, reset-code generation, timezone-aware expiration, password persistence, and one-time code consumption.",
+      "approach": "Focus on the lifecycle of a reset code: generated with an expiry timestamp (stored in UTC, compared against the current time converted consistently — timezone bugs usually come from comparing local time to UTC or vice versa), checked for expiry before use, and consumed exactly once (the code must be invalidated immediately after a successful reset, ideally atomically with the password update, so a replayed request can't reuse it). Configuration loading bugs are often about stale or missing config values (e.g. expiry duration) not being read correctly at the point of use.",
+      "prompt": "I'm repairing a password reset service with a timezone-related expiration bug and one-time code consumption issues. Ask me to explain exactly where timestamps are stored and compared (UTC vs local) to find the timezone bug, and have me describe how to make code consumption and password update atomic so a code can't be reused — don't name the bug directly."
+    },
+    {
+      "title": "Payment Reconciliation",
+      "url": "https://leetcode.com/project/?detail=payment-reconcile-api",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Idempotency", "Transactions", "Concurrency"],
+      "description": "Build an in-memory payment reconciliation service with atomic invoice registration, three-tier payment matching, idempotent retries, and transactional payment batches.",
+      "approach": "Three-tier matching likely means: exact match (invoice ID + amount), then partial/fuzzy match (amount within tolerance, or split across multiple invoices), then manual-review fallback for anything unmatched — define clear criteria for falling through each tier. Idempotent retries require a dedup key per incoming payment so reprocessing the same payment event doesn't double-apply it. Transactional batches mean a group of reconciliation updates either all commit or none do, so a partial failure mid-batch can't leave invoices half-reconciled.",
+      "prompt": "I'm building a payment reconciliation service with three-tier matching and idempotent retries. Ask me to define the exact criteria for falling from exact match to partial match to manual review, and have me explain what dedup key prevents a retried payment event from being reconciled twice — don't define the matching tiers for me."
+    },
+    {
+      "title": "Scheduled Banking Ledger",
+      "url": "https://leetcode.com/project/?detail=scheduled-banking",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["State Management", "Transactions", "Scheduling"],
+      "description": "Build an in-memory banking ledger with scheduled payments, atomic transfer batches, spending rankings, account merges, and historical balances.",
+      "approach": "Historical balances imply an append-only ledger model (events/transactions) rather than mutating a single balance field — the current balance is derived by replaying or summing events up to a point in time, which also naturally supports 'balance as of date X' queries. Scheduled payments need a time-ordered queue processed at or after their due time, and atomic transfer batches must debit and credit all accounts in a batch as a single all-or-nothing unit. Account merges are the trickiest part: decide how merged accounts' historical ledgers combine without breaking the balance-at-time-X invariant for either account's history.",
+      "prompt": "I'm designing a banking ledger that needs to answer 'what was the balance on date X' and support account merges. Ask me why an append-only event ledger is better suited to this than a single mutable balance field, and challenge me to explain how merging two accounts' histories preserves correct historical balance queries for both — don't propose the ledger model yourself."
+    },
+    {
+      "title": "Streaming Stack Trace Processor",
+      "url": "https://leetcode.com/project/?detail=stack-trace-stream",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Stream Processing", "State Management", "Lazy Evaluation"],
+      "description": "Build a streaming call-stack processor that turns sampled stacks into start/end events, with confirmation filtering, lazy compression, and snapshot resume.",
+      "approach": "The core idea is diffing consecutive stack samples to infer start/end events: a frame present in the previous sample but not the current one implies an 'end' event, and a new frame implies a 'start' event — this requires maintaining the previous sample's state as you stream. Confirmation filtering likely means not emitting a start/end event until it's been observed for N consecutive samples, to filter out sampling noise/jitter. Snapshot resume means the processor must be able to serialize its current state (last known stack, pending unconfirmed transitions) and resume processing from there without losing or duplicating events.",
+      "prompt": "I'm building a streaming stack-trace processor that diffs consecutive samples into start/end events with noise filtering and resumable snapshots. Ask me how I'd detect a frame's start/end by comparing to the previous sample, and how confirmation filtering avoids false transitions from sampling jitter — then quiz me on what minimal state needs to be snapshotted to resume correctly, instead of designing it for me."
+    },
+    {
+      "title": "Reliable Tool-Calling Agent",
+      "url": "https://leetcode.com/project/?detail=tool-call-agent",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["LLM Agents", "Tool Calling", "Concurrency"],
+      "description": "Build a tool-calling agent loop with bounded concurrent tool execution, replay caching, protocol validation, and execution budgets.",
+      "approach": "This is directly FDE-relevant: the agent loop receives tool-call requests (from an LLM), validates them against a protocol/schema before execution (reject malformed calls early), executes allowed tools with bounded concurrency (a semaphore or worker pool capping in-flight calls), and tracks an execution budget (time, call count, or cost) that halts the loop once exhausted. Replay caching means identical tool calls (same tool + same arguments) within a session should be served from a cache rather than re-executed, which also protects against runaway repeated calls.",
+      "prompt": "I'm building a tool-calling agent loop for an LLM with bounded concurrency, replay caching, and an execution budget. Ask me how I'd validate a tool call against its protocol/schema before executing it, how I'd structure a cache key for replay (tool + arguments), and have me reason through what should happen when the execution budget runs out mid-loop — don't design the loop for me."
+    },
+    {
+      "title": "Actor Follows and Notifications",
+      "url": "https://leetcode.com/project/?detail=actor-follow-notifications",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Debugging", "Idempotency", "Concurrency"],
+      "description": "Repair an actor-follow notification service with correct subscriptions, one notice per eligible user, idempotent movie imports, conflict detection, and thread-safe inbox snapshots.",
+      "approach": "The 'one notice per eligible user' constraint is the key correctness property: deduplicate notification fan-out so a follower never receives two notices for the same event, even under concurrent processing or retried imports. Idempotent movie imports need a natural key (e.g. external movie ID) checked before insert, so reimporting the same movie doesn't create a duplicate or re-trigger notifications. Thread-safe inbox snapshots mean reading a user's notification inbox concurrently with writes must return a consistent view, not a torn read mixing old and new state.",
+      "prompt": "I'm repairing an actor-follow notification service that's sending duplicate notices and has idempotency bugs in movie imports. Ask me to identify the natural key that should prevent duplicate imports, and have me explain how I'd guarantee exactly one notification per eligible follower even if the import is retried concurrently — don't locate the duplicate-notification bug for me."
+    },
+    {
+      "title": "Inventory API",
+      "url": "https://leetcode.com/project/?detail=stockroom-inventory",
+      "difficulty": "Hard",
+      "duration": "75min",
+      "tags": ["Debugging", "Database", "Authorization"],
+      "description": "Repair a MongoDB-backed inventory API with correct persistence, owner-scoped access, optimistic version control, unique SKUs, and storage error mapping.",
+      "approach": "Owner-scoped access must be enforced in every query (filter by owner ID at the database level, not just checked after fetching), otherwise a bug could leak or let one owner modify another's inventory. Optimistic version control (a version field incremented on each write, checked on update) prevents lost updates when two concurrent requests modify the same item. Unique SKUs should be enforced via a database-level unique index, not an application-level existence check (which races). Storage error mapping means translating low-level database errors (duplicate key, connection failure, timeout) into meaningful API-level error responses rather than leaking raw driver exceptions.",
+      "prompt": "I'm repairing a MongoDB-backed inventory API with owner-access, versioning, and unique SKU bugs. Ask me whether owner scoping is applied inside the database query itself or only checked afterward in application code, and have me explain why a unique index is safer than a check-then-insert for SKUs — then quiz me on how I'd map a MongoDB duplicate-key error to a clean API response, don't tell me the mapping."
+    },
+    {
+      "title": "Return Approval Engine",
+      "url": "https://leetcode.com/project/?detail=parcel-return-policy",
+      "difficulty": "Hard",
+      "duration": "75min",
+      "tags": ["Debugging", "Parsing", "Input Validation"],
+      "description": "Repair a strict JSON-subset parser and a return-policy engine with correct validation, risk scoring, ordered rejection rules, and per-line error isolation.",
+      "approach": "Treat the parser and the policy engine as two separate correctness problems. For the parser: verify it rejects malformed input strictly (no silent coercion of invalid JSON-subset syntax) and handles edge cases like nested structures, escaped characters, and numeric precision consistently. For the policy engine: 'ordered rejection rules' means rules must be evaluated in a defined priority order and the first failing rule should determine the rejection reason — don't evaluate all rules and pick an arbitrary one. Per-line error isolation means a parse or validation failure on one line of a batch must be reported without aborting processing of the remaining lines.",
+      "prompt": "I'm repairing a strict JSON-subset parser and a return-policy engine with an ordered-rule-evaluation bug. Ask me to explain what 'strict' parsing should reject that a lenient parser would silently accept, and have me define the exact priority order my rejection rules must be evaluated in — then challenge me on how a single bad line in a batch should be isolated from the rest, don't fix the ordering for me."
+    },
+    {
+      "title": "Event Recommendation System",
+      "url": "https://leetcode.com/project/?detail=event-campaigns",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["AI Coding", "Debugging", "Design Patterns"],
+      "description": "Repair a composable rule engine for event recommendations with correct location, weekend, and price rules, stateless rule reuse, and tiered results with a fallback.",
+      "approach": "Each rule (location match, weekend-only, price range) should be a stateless, independently testable unit implementing a common interface (e.g. a strategy or chain-of-responsibility pattern), so rules can be composed and reused without shared mutable state causing cross-request bugs. 'Tiered results with a fallback' means if the strict rule combination yields zero results, progressively relax tiers (e.g. drop the price constraint, then the weekend constraint) until a minimum viable result set is returned, rather than returning nothing.",
+      "prompt": "I'm repairing a composable rule engine for event recommendations with tiered fallback results. Ask me to confirm each rule is truly stateless (no shared mutable state across requests), and have me design the tier-relaxation order when strict filtering returns zero results — don't propose the fallback order yourself, quiz me on it."
+    },
+    {
+      "title": "Apparel Shopping Cart",
+      "url": "https://leetcode.com/project/?detail=apparel-shopping-cart",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["State Management", "Data Modeling", "Data Isolation"],
+      "description": "Build a shopping cart state component with ordered line items, exact integer totals, and isolated snapshots for a supplied storefront.",
+      "approach": "Use integer (cents) arithmetic throughout rather than floating point, to avoid rounding errors in totals — state this explicitly as a design decision. Ordered line items mean insertion order must be preserved (not just a set/map), typically via an ordered list or a sequence field per item. Isolated snapshots mean reading the cart's current state for display must return an immutable copy, not a live reference, so a concurrent mutation to the cart doesn't change a snapshot that's already been handed to a caller.",
+      "prompt": "I'm building a shopping cart with ordered line items and exact totals for a storefront. Ask me why I should use integer cents instead of floating-point for money math, and have me explain how I'd return an isolated snapshot of cart state that can't be mutated by a concurrent cart update afterward — don't give me the snapshot technique directly."
+    },
+    {
+      "title": "Currency Conversion",
+      "url": "https://leetcode.com/project/?detail=currency-conversion",
+      "difficulty": "Easy",
+      "duration": "60min",
+      "tags": ["Graph Algorithms", "Floating-Point Arithmetic", "Parsing"],
+      "description": "Build an in-memory currency exchange service with atomic rate registration, direct and single-hop lookups, and best multi-hop route search over a directed rate graph.",
+      "approach": "Model currencies as graph nodes and exchange rates as weighted directed edges. Direct lookup is a single edge check; single-hop is a two-edge path (A→B→C). 'Best multi-hop route' is a shortest-path-style search where the 'weight' to optimize is the product of rates along the path (not a sum) — this usually means taking the log of rates to convert multiplication into addition so standard shortest-path algorithms (Bellman-Ford/Dijkstra variants) apply, or directly comparing products if the graph is small. Watch for floating-point precision drift across many hops.",
+      "prompt": "I'm building a currency conversion service that needs the best multi-hop exchange rate through a directed graph. Ask me why multiplying rates along a path doesn't map directly onto standard shortest-path algorithms, and quiz me on the log-transform trick (or alternative) to make it work — then have me explain how floating-point error could drift across many hops, don't explain the trick to me first."
+    },
+    {
+      "title": "Payment Validation",
+      "url": "https://leetcode.com/project/?detail=payment-form-validation",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Input Validation", "State Management", "Boundary Conditions"],
+      "description": "Build a payment form validation component that tracks field values and touched state, applies strict per-field rules, and controls when the form can be submitted.",
+      "approach": "Separate 'value' state from 'touched' state per field — a field can be invalid but shouldn't show an error until the user has interacted with it (touched), which affects UX but not core validation logic. Each field's validation rule should be a pure function of its value (and possibly other field values for cross-field rules like 'expiry must be in the future'). Submit should be gated on all fields being valid, independent of touched state, so submission can't bypass validation.",
+      "prompt": "I'm building payment form validation with per-field 'touched' state separate from validity. Ask me to explain why touched state should never affect whether submission is allowed (only whether an error is displayed), and have me define any cross-field validation rules (like card expiry) as pure functions — don't design the field model for me."
+    },
+    {
+      "title": "Payments API",
+      "url": "https://leetcode.com/project/?detail=payments-api",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Database", "REST API", "Data Persistence"],
+      "description": "Complete a SQLite-backed account service that records payments, computes balances, and persists data across restarts.",
+      "approach": "Balances should be derived from the persisted payment records (sum of transactions for an account) rather than stored as a separately-updated field that can drift out of sync — state this trade-off explicitly (derived balance is always consistent but may be slower; a cached/stored balance is faster but needs careful transactional updates). Persistence across restarts just means every write must be committed to SQLite before acknowledging success — no in-memory-only state that would be lost on restart.",
+      "prompt": "I'm building a SQLite-backed payments API that computes balances and must survive restarts. Ask me to weigh deriving the balance from the transaction log each time vs maintaining a cached balance field, and have me explain what persistence guarantee ensures no acknowledged write is lost on restart — don't pick the approach for me."
+    },
+    {
+      "title": "Transactions List",
+      "url": "https://leetcode.com/project/?detail=transactions-list",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["State Management", "Data Isolation", "Data Transformation"],
+      "description": "Complete a transaction list view model with credit/debit filtering, data replacement that keeps the selected filter, and isolated snapshots.",
+      "approach": "The view model should hold the full transaction set plus the current filter (credit/debit/all) as separate pieces of state, deriving the displayed list by applying the filter to the full set — rather than mutating the underlying data when filtering. 'Data replacement that keeps the selected filter' means when new transaction data arrives (e.g. a refresh), the currently selected filter must be reapplied to the new data, not reset to a default. Isolated snapshots again mean returned views of the data shouldn't be mutable references into internal state.",
+      "prompt": "I'm building a transaction list view model with filtering that must survive data refreshes. Ask me to explain why filter state and raw data should be stored separately rather than filtering in place, and have me walk through what happens to the selected filter when a data refresh occurs — don't design the state shape for me."
+    },
+    {
+      "title": "Shipping Cost",
+      "url": "https://leetcode.com/project/?detail=shipping-cost",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Parsing", "Transactions", "Integer Overflow"],
+      "description": "Complete a shipping cost service with atomic tiered tariff registration, cumulative per-unit and fixed bracket pricing, ordered error handling, and detached rule listings.",
+      "approach": "Tiered pricing means different unit ranges have different rates (e.g. first 10 units at rate A, next 40 at rate B), and 'cumulative' means the total is the sum across all applicable tiers, not just the rate for the final tier. Watch for integer overflow explicitly when multiplying large quantities by rates — decide whether to use a wider integer type or validate quantity bounds upfront. 'Ordered error handling' means validation errors should surface in a consistent, defined order (e.g. check tariff existence before quantity bounds) so error messages are predictable.",
+      "prompt": "I'm building a tiered cumulative shipping cost calculator with integer overflow risk. Ask me to walk through how a cumulative tiered calculation differs from a single flat-rate-at-final-tier calculation with a concrete example, and have me explain where overflow could occur and how I'd guard against it — don't compute the tiered formula for me."
+    },
+    {
+      "title": "Sales Reporting",
+      "url": "https://leetcode.com/project/?detail=sales-reporting",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Parameterized Queries", "SQL", "Database"],
+      "description": "Complete a SQLite-backed sales report that validates filters, runs parameterized aggregate queries, and returns totals and top-k leaderboards within a row budget.",
+      "approach": "Always use parameterized queries (never string-concatenate filter values into SQL) to avoid injection and quoting bugs. Validate filter inputs (date ranges, categories) before building the query. For top-k leaderboards within a row budget, push the LIMIT and ORDER BY into the SQL query itself rather than fetching all rows and truncating in application code, to respect the row budget efficiently. Aggregate totals (SUM/COUNT/GROUP BY) should be computed in SQL, not by pulling raw rows into memory and summing in code.",
+      "prompt": "I'm building a sales reporting service with parameterized aggregate queries and a top-k leaderboard under a row budget. Ask me why pushing LIMIT/ORDER BY/aggregation into SQL is important here instead of fetching all rows and processing in application code, and have me explain the injection risk of not parameterizing filters — don't write the query for me."
+    },
+    {
+      "title": "Aggregate Transactions",
+      "url": "https://leetcode.com/project/?detail=receivable-allocation",
+      "difficulty": "Medium",
+      "duration": "60min",
+      "tags": ["Data Aggregation", "Business Rules", "Integer Arithmetic"],
+      "description": "Complete two functions that aggregate card transactions into receivables and split each receivable among contracts and the merchant using fixed and percentage rules.",
+      "approach": "First aggregate raw transactions into receivables (group by the appropriate key — e.g. merchant + settlement period — and sum amounts using integer/cents arithmetic to avoid floating-point drift). Then split each receivable according to fixed-amount rules first, then percentage-based rules on the remainder, being explicit about rounding (who absorbs the remainder cent when a percentage split doesn't divide evenly — usually the merchant or the largest-share party, and this must be deterministic and documented).",
+      "prompt": "I'm aggregating card transactions into receivables and splitting them between contracts and a merchant using fixed and percentage rules. Ask me how I'd apply fixed-amount deductions before percentage splits (and why that order matters), and quiz me on exactly which party absorbs leftover rounding cents when a percentage split doesn't divide evenly — don't give me the splitting order or rounding rule directly."
+    }
+  ]
+}
