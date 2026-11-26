@@ -15,9 +15,9 @@ class ArchitectureLabTests(unittest.TestCase):
         cls.diagrams = json.loads((ROOT / "diagrams.json").read_text(encoding="utf-8"))["diagrams"]
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
 
-    def test_twelve_unique_source_grounded_cases(self):
-        self.assertEqual(len(self.cases), 12)
-        self.assertEqual(len({case["case_id"] for case in self.cases}), 12)
+    def test_all_cases_unique_and_source_grounded(self):
+        self.assertEqual(len(self.cases), 13)
+        self.assertEqual(len({case["case_id"] for case in self.cases}), 13)
         for case in self.cases:
             self.assertTrue(case["source"]["canonical_url"].startswith("https://"))
             if case.get("supporting_implementation"):

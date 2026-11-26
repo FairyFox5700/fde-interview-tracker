@@ -144,7 +144,7 @@
             ],
             "tradeoff": "Approximate counters mean the enforced budget can briefly overshoot before being corrected, and legitimate high-cardinality use cases need an explicit quota-increase workflow."
           },
-          "math": "At 5M events/sec with an average of ~50 active label combinations per metric name and a per-tenant cap of 100K active series, a single runaway tenant emitting one new UUID-valued label per request could otherwise generate >1M new series/sec \u2014 enforcing the cap at ingest avoids indexing that volume entirely rather than discovering it after a multi-TB index bloat."
+          "math": "At 5M events/sec with an average of ~50 active label combinations per metric name and a per-tenant cap of 100K active series, a single runaway tenant emitting one new UUID-valued label per request could otherwise generate >1M new series/sec — enforcing the cap at ingest avoids indexing that volume entirely rather than discovering it after a multi-TB index bloat."
         },
         {
           "workflow": "Query metrics and logs",
@@ -160,7 +160,7 @@
             ],
             "tradeoff": "Users running broad historical investigations get asynchronous, slower results instead of instant answers, which can frustrate incident responders mid-investigation."
           },
-          "math": "If a bounded query scans at most ~2 GB and a compacted segment scan runs at ~500 MB/sec per worker, worst-case synchronous scan time is ~4 seconds \u2014 comfortably under the 10s p95 target even with the merge/auth overhead, whereas an unbounded 90-day text search over ~3PB of compacted logs would take over an hour synchronously."
+          "math": "If a bounded query scans at most ~2 GB and a compacted segment scan runs at ~500 MB/sec per worker, worst-case synchronous scan time is ~4 seconds — comfortably under the 10s p95 target even with the merge/auth overhead, whereas an unbounded 90-day text search over ~3PB of compacted logs would take over an hour synchronously."
         },
         {
           "workflow": "Evaluate alerts and notify",
@@ -176,7 +176,7 @@
             ],
             "tradeoff": "Every watermark-based window waits at least the configured lateness bound before closing, which adds that much latency to the 60-second alert-evaluation target."
           },
-          "math": "With a 60-second alert SLO and a chosen lateness bound of 15 seconds, evaluators have a ~45-second effective budget to query, evaluate, and publish \u2014 tight enough that the lateness bound must stay well under a third of the total SLO to leave room for query and notification latency."
+          "math": "With a 60-second alert SLO and a chosen lateness bound of 15 seconds, evaluators have a ~45-second effective budget to query, evaluate, and publish — tight enough that the lateness bound must stay well under a third of the total SLO to leave room for query and notification latency."
         },
         {
           "workflow": "Administer policy and expose cost/usage",
@@ -192,7 +192,7 @@
             ],
             "tradeoff": "Building and maintaining accurate, near-real-time per-tenant usage attribution adds its own non-trivial engineering and storage cost on top of the core ingestion/query pipeline."
           },
-          "math": "At an assumed blended cost of ~$0.02/GB/month for hot storage and ~$0.002/GB/month for cold object storage, a single mid-size tenant generating 500 GB/day without sampling versus 100 GB/day with 5x sampling applied represents roughly a $240/month difference in hot-tier cost alone \u2014 exactly the kind of per-tenant signal an aggregate-only report would hide until the end-of-month bill."
+          "math": "At an assumed blended cost of ~$0.02/GB/month for hot storage and ~$0.002/GB/month for cold object storage, a single mid-size tenant generating 500 GB/day without sampling versus 100 GB/day with 5x sampling applied represents roughly a $240/month difference in hot-tier cost alone — exactly the kind of per-tenant signal an aggregate-only report would hide until the end-of-month bill."
         }
       ],
       "implementation_plan": [
@@ -217,7 +217,7 @@
       "level_expectations": {
         "mid_level": "Clarifies scope and scale, separates ingestion from querying with a durable queue, chooses appropriate metric and log stores, defines basic APIs, and discusses retention, alerting, sharding, backpressure, and access control.",
         "senior": "Quantifies SLO and cost drivers, reasons about cardinality and skew, defines acknowledgment and duplicate semantics, designs tenant-aware admission control and alert state, separates hot and cold paths, and explains regional failure, privacy, replay, and migration tradeoffs.",
-        "staff": "~40/60 breadth/depth. A staff-level answer breezes past the ingestion/storage/query shape and spends most of its time reasoning about the hardest tradeoffs with real experience behind them: how to bound a noisy tenant's blast radius on a shared cardinality index without over-provisioning per-tenant dedicated shards, how to pick a scan-byte budget that keeps the query plane's tail latency predictable under adversarial ad hoc queries, and why exactly-once ingestion is a trap \u2014 arguing precisely for at-least-once-plus-dedup with concrete bounds on duplicate risk instead of chasing an unachievable guarantee."
+        "staff": "~40/60 breadth/depth. A staff-level answer breezes past the ingestion/storage/query shape and spends most of its time reasoning about the hardest tradeoffs with real experience behind them: how to bound a noisy tenant's blast radius on a shared cardinality index without over-provisioning per-tenant dedicated shards, how to pick a scan-byte budget that keeps the query plane's tail latency predictable under adversarial ad hoc queries, and why exactly-once ingestion is a trap — arguing precisely for at-least-once-plus-dedup with concrete bounds on duplicate risk instead of chasing an unachievable guarantee."
       },
       "provenance_note": "The architecture principles in source_backed_facts are paraphrased from the linked Microsoft Learn publications. The SaaS customer, scale targets, APIs, entities, SLOs, topology, and rollout are proposed interview adaptations, not claims that Microsoft prescribes this exact system. The Aced title, URL, and company list are question metadata supplied in the task brief; the Aced page could not be independently extracted in this environment.",
       "source_backed_facts": [
@@ -355,7 +355,7 @@
               "chosen": "Dedicated time-series engine for metrics, columnar+inverted-index store for logs, cold tier in object storage for both.",
               "why_not": "A single universal store (e.g., forcing logs into the time-series engine or metrics into a generic log index) simplifies operations but compromises either metrics' low-latency numeric aggregation or logs' full-text/attribute search.",
               "why": [
-                "Metrics need fast numeric rollups over fixed-cardinality series; logs need full-text and high-cardinality attribute search \u2014 the access patterns are fundamentally different.",
+                "Metrics need fast numeric rollups over fixed-cardinality series; logs need full-text and high-cardinality attribute search — the access patterns are fundamentally different.",
                 "Each store can be scaled, compacted, and cost-tuned independently per signal type.",
                 "Keeps query planning simpler per-store even though it adds a correlation layer on top."
               ],
@@ -413,7 +413,7 @@
           "known_issue": null
         }
       ],
-      "final_design_summary": "Telemetry flows through authenticated collectors into a partitioned durable stream that only acks after replication, is deduplicated and rolled up into separate metric and log stores, served through a scan-budgeted query gateway, evaluated by a stateful watermark-aware alerting engine, and governed end-to-end by per-tenant policy, quota, and cost-usage APIs \u2014 with cardinality budgets, query scan caps, and lateness bounds specifically closing the gaps a naive version of each workflow would hit at multi-million-event-per-second scale."
+      "final_design_summary": "Telemetry flows through authenticated collectors into a partitioned durable stream that only acks after replication, is deduplicated and rolled up into separate metric and log stores, served through a scan-budgeted query gateway, evaluated by a stateful watermark-aware alerting engine, and governed end-to-end by per-tenant policy, quota, and cost-usage APIs — with cardinality budgets, query scan caps, and lateness bounds specifically closing the gaps a naive version of each workflow would hit at multi-million-event-per-second scale."
     },
     {
       "case_id": "fde-scheduler-02",
@@ -559,7 +559,7 @@
           "tech_decision": {
             "decision_title": "Monotonic fencing epoch checked on every materialization write vs. lease-timeout trust alone",
             "chosen": "Every partition ownership renewal increments a monotonically increasing epoch; every materialization transaction must present the current epoch, and the database rejects writes from a stale (lower) epoch even if that leader still believes it holds the lease.",
-            "why_not": "Trusting lease expiry timing alone (old leader assumed dead once its lease should have expired) is vulnerable to clock drift and GC pauses \u2014 a 'dead' leader can resume writing moments after a new leader takes over, before it notices its lease lapsed.",
+            "why_not": "Trusting lease expiry timing alone (old leader assumed dead once its lease should have expired) is vulnerable to clock drift and GC pauses — a 'dead' leader can resume writing moments after a new leader takes over, before it notices its lease lapsed.",
             "why": [
               "The epoch check happens at the database/transaction layer, not based on wall-clock trust, so it's correct even under clock skew or long GC pauses.",
               "A stale leader's writes are rejected outright rather than silently succeeding and creating a duplicate JobRun.",
@@ -567,7 +567,7 @@
             ],
             "tradeoff": "Requires every write path that touches schedule state to be epoch-aware, which adds a bit of complexity to every materialization transaction."
           },
-          "math": "At 10M schedules partitioned across ~1,000 leader shards (10K schedules/shard), a rebalance event affecting even 1% of shards (10 shards) without epoch fencing could produce up to 10 x ~20 duplicate occurrences/sec during the ~2-second lease-handoff window \u2014 roughly 200 duplicate JobRuns per rebalance event that the epoch check eliminates entirely."
+          "math": "At 10M schedules partitioned across ~1,000 leader shards (10K schedules/shard), a rebalance event affecting even 1% of shards (10 shards) without epoch fencing could produce up to 10 x ~20 duplicate occurrences/sec during the ~2-second lease-handoff window — roughly 200 duplicate JobRuns per rebalance event that the epoch check eliminates entirely."
         },
         {
           "workflow": "Dispatch and execute via leased workers",
@@ -575,7 +575,7 @@
           "tech_decision": {
             "decision_title": "Monotonically increasing fencing token per attempt, compared on every completion write",
             "chosen": "Each Attempt is issued a strictly increasing fencing token when leased; heartbeat and completion operations include that token, and the state store only accepts a transition if the presented token is >= the currently recorded token for that JobRun.",
-            "why_not": "Relying solely on the queue's lock/visibility-timeout mechanism (peek-lock style) to prevent this is insufficient, because the lock only prevents concurrent delivery \u2014 it doesn't prevent a worker that already picked up the message from writing a stale completion after its lock expired.",
+            "why_not": "Relying solely on the queue's lock/visibility-timeout mechanism (peek-lock style) to prevent this is insufficient, because the lock only prevents concurrent delivery — it doesn't prevent a worker that already picked up the message from writing a stale completion after its lock expired.",
             "why": [
               "The fencing token check happens at the state-store write, independent of queue-level locking, closing the actual race.",
               "It makes 'last writer wins by token' the rule instead of 'last writer wins by wall-clock arrival', which is what actually matters for correctness.",
@@ -583,7 +583,7 @@
             ],
             "tradeoff": "Every attempt-state-changing call must thread and validate the token, which is extra plumbing across the heartbeat/completion API surface."
           },
-          "math": "With a 150,000/sec peak dispatch rate and an assumed 0.1% rate of lease-expiry-then-late-completion races under worker churn, that's ~150 stale-completion attempts/sec at peak that the fencing check must correctly reject \u2014 without it, even a small fraction of those overwriting real results would silently corrupt a meaningful number of job outcomes per day."
+          "math": "With a 150,000/sec peak dispatch rate and an assumed 0.1% rate of lease-expiry-then-late-completion races under worker churn, that's ~150 stale-completion attempts/sec at peak that the fencing check must correctly reject — without it, even a small fraction of those overwriting real results would silently corrupt a meaningful number of job outcomes per day."
         },
         {
           "workflow": "Handle failures, retries, and dead-lettering",
@@ -603,11 +603,11 @@
         },
         {
           "workflow": "Release dependencies and expose run history",
-          "problem": "Active-active multi-region scheduling lowers failover time but makes partition ownership and duplicate-materialization prevention harder across regions; a home-region or active-passive model is simpler to reason about but accepts a larger RTO \u2014 and this cross-cutting choice affects every workflow's correctness guarantees during a regional failure, including dependency release ordering.",
+          "problem": "Active-active multi-region scheduling lowers failover time but makes partition ownership and duplicate-materialization prevention harder across regions; a home-region or active-passive model is simpler to reason about but accepts a larger RTO — and this cross-cutting choice affects every workflow's correctness guarantees during a regional failure, including dependency release ordering.",
           "tech_decision": {
             "decision_title": "Home-region ownership with controlled promotion vs. active-active multi-region scheduling",
             "chosen": "Each schedule partition has a home region that normally owns materialization; during a regional failure, a surviving region can only promote itself to own a partition after a lease/epoch decision in a consistency domain that survived the failure, followed by reconciliation of in-flight outbox and attempt state before broad dispatch resumes.",
-            "why_not": "Active-active scheduling, where multiple regions can materialize for the same partition simultaneously to minimize failover time, is tempting for lower RTO but makes duplicate-ownership and duplicate-materialization prevention dramatically harder \u2014 exactly the failure mode the fencing-epoch design in workflow 1 is built to prevent, and multiplying that across regions multiplies the risk surface.",
+            "why_not": "Active-active scheduling, where multiple regions can materialize for the same partition simultaneously to minimize failover time, is tempting for lower RTO but makes duplicate-ownership and duplicate-materialization prevention dramatically harder — exactly the failure mode the fencing-epoch design in workflow 1 is built to prevent, and multiplying that across regions multiplies the risk surface.",
             "why": [
               "A single home region per partition keeps the fencing-epoch and uniqueness-key guarantees from workflow 1 intact without needing cross-region consensus on every materialization.",
               "Controlled promotion (requiring an explicit lease/epoch decision before resuming dispatch) prevents the exact 'two owners' scenario that active-active risks by design.",
@@ -615,7 +615,7 @@
             ],
             "tradeoff": "RTO is necessarily larger than an active-active design could theoretically achieve, since promotion requires a deliberate, safety-checked handoff rather than instant multi-region write availability."
           },
-          "math": "If a regional failure affects partitions serving an estimated 2M of the 10M schedules (20%) and promotion/reconciliation takes a targeted 2-minute RTO, roughly 20,000 x 2 = 40,000 JobRun materializations are delayed (not lost, since Schedule state is durably replicated) during that window \u2014 an explicitly bounded, auditable RPO/RTO tradeoff versus the unbounded duplicate-risk of an active-active design under the same failure."
+          "math": "If a regional failure affects partitions serving an estimated 2M of the 10M schedules (20%) and promotion/reconciliation takes a targeted 2-minute RTO, roughly 20,000 x 2 = 40,000 JobRun materializations are delayed (not lost, since Schedule state is durably replicated) during that window — an explicitly bounded, auditable RPO/RTO tradeoff versus the unbounded duplicate-risk of an active-active design under the same failure."
         }
       ],
       "implementation_plan": [
@@ -697,7 +697,7 @@
       "out_of_scope": [
         "The actual sandboxed task-execution runtime/container engine internals (we assume an isolated runner exists and focus on scheduling/dispatch around it).",
         "Building the customer-provided task code itself or its business logic.",
-        "A general-purpose workflow/DAG authoring UI \u2014 we design the dependency-release mechanism, not the visual builder.",
+        "A general-purpose workflow/DAG authoring UI — we design the dependency-release mechanism, not the visual builder.",
         "Billing/metering system beyond exposing the data needed for tenant quotas."
       ],
       "planning_approach": "The hardest part of this problem is the scheduler-to-queue handoff: a leader can crash after creating a JobRun but before publishing it, and two partition leaders can momentarily believe they own the same partition, so ownership, atomicity, and fencing all have to be solved together rather than bolted on later. I'll tackle the four workflows in the order a request actually flows: (1) create and materialize schedules into due JobRuns, since nothing downstream exists without a correctly-fenced, exactly-once-per-occurrence materialization step; (2) dispatch and execute via leased workers, since that's where at-least-once delivery and fencing tokens prevent duplicate side effects; (3) handle failures, retries, and dead-lettering, since that closes the loop on durability guarantees; (4) release dependency-driven downstream work and expose run history/fairness, which depends on the first three being correct.",
@@ -757,11 +757,11 @@
             {
               "decision_title": "Transactional outbox vs. direct dual write (DB insert + queue publish)",
               "chosen": "Commit the JobRun and an outbox record in the same database transaction; a separate relay process publishes outbox rows to the queue and retries idempotently.",
-              "why_not": "Writing the JobRun to the database and then publishing to the queue as two separate operations can crash between the two steps, silently losing the dispatch even though the JobRun exists \u2014 or double-publishing on retry.",
+              "why_not": "Writing the JobRun to the database and then publishing to the queue as two separate operations can crash between the two steps, silently losing the dispatch even though the JobRun exists — or double-publishing on retry.",
               "why": [
                 "Atomicity: the JobRun and its 'needs to be published' marker commit or fail together, eliminating the silent-loss gap.",
                 "The relay can retry publishing indefinitely using the JobRun ID as an idempotent message ID without risking duplicate JobRun creation.",
-                "Decouples materialization latency from queue availability \u2014 a transient queue blip doesn't block schedule-table writes."
+                "Decouples materialization latency from queue availability — a transient queue blip doesn't block schedule-table writes."
               ],
               "tradeoff": "Adds relay lag between commit and actual dispatch, and requires outbox table cleanup/compaction as an ongoing operational task."
             },
@@ -852,7 +852,7 @@
           "known_issue": null
         }
       ],
-      "final_design_summary": "Schedules are materialized into immutable JobRuns by partition-leased leaders using a transactional outbox and fencing epochs to prevent duplicate ownership, dispatched at-least-once to leased workers whose fencing tokens prevent stale completions from corrupting state, recovered through a bounded-retry/dead-letter reaper that explicitly handles DST and clock-skew edge cases, and finally released into dependent downstream work through an idempotent dependency evaluator \u2014 together giving exactly-once-per-occurrence materialization with honest at-least-once execution semantics rather than a false exactly-once promise."
+      "final_design_summary": "Schedules are materialized into immutable JobRuns by partition-leased leaders using a transactional outbox and fencing epochs to prevent duplicate ownership, dispatched at-least-once to leased workers whose fencing tokens prevent stale completions from corrupting state, recovered through a bounded-retry/dead-letter reaper that explicitly handles DST and clock-skew edge cases, and finally released into dependent downstream work through an idempotent dependency evaluator — together giving exactly-once-per-occurrence materialization with honest at-least-once execution semantics rather than a false exactly-once promise."
     },
     {
       "case_id": "fde-login-03",
@@ -1009,7 +1009,7 @@
             ],
             "tradeoff": "Deliberately doing 'wasted' work (dummy hashing) for non-existent accounts costs real CPU/latency budget that could otherwise fail fast."
           },
-          "math": "At a login/recovery traffic mix including an estimated 2% probe rate from automated enumeration tooling against 80M accounts, closing the timing side-channel means absorbing dummy memory-hard hash computations (each costing ~50-100ms of worker-pool CPU) for roughly 300 extra probe requests/sec at peak \u2014 a deliberate, bounded cost versus the much larger cost of a successful enumeration-driven stuffing campaign."
+          "math": "At a login/recovery traffic mix including an estimated 2% probe rate from automated enumeration tooling against 80M accounts, closing the timing side-channel means absorbing dummy memory-hard hash computations (each costing ~50-100ms of worker-pool CPU) for roughly 300 extra probe requests/sec at peak — a deliberate, bounded cost versus the much larger cost of a successful enumeration-driven stuffing campaign."
         },
         {
           "workflow": "Authenticate and apply adaptive risk/step-up",
@@ -1023,13 +1023,13 @@
               "Explicitly measuring false-positive rate during rollout (not just after complaints) lets the team tune thresholds data-driven rather than reactively.",
               "Routing high-risk-but-plausibly-legitimate cases to assisted recovery (rather than a hard block) gives a path back in without weakening the block decision itself."
             ],
-            "tradeoff": "Requires ongoing operational investment in measuring and tuning the risk model and its thresholds \u2014 this isn't a 'set once' decision like many other parts of the design."
+            "tradeoff": "Requires ongoing operational investment in measuring and tuning the risk model and its thresholds — this isn't a 'set once' decision like many other parts of the design."
           },
-          "math": "At 15,000 logins/sec peak with an assumed 3% of logins flagged medium-risk, ~450 logins/sec/peak hit the step-up path \u2014 if even 20% of those are false positives (90/sec) and each costs an extra ~15 seconds of user friction completing a second factor, that's real measurable UX cost the team must weigh against the account-takeover reduction it buys."
+          "math": "At 15,000 logins/sec peak with an assumed 3% of logins flagged medium-risk, ~450 logins/sec/peak hit the step-up path — if even 20% of those are false positives (90/sec) and each costs an extra ~15 seconds of user friction completing a second factor, that's real measurable UX cost the team must weigh against the account-takeover reduction it buys."
         },
         {
           "workflow": "Issue and manage sessions/tokens",
-          "problem": "A client retrying a refresh call after a network timeout can present the same refresh token twice in quick succession; if the server treats every reuse of an already-consumed token as theft, this benign retry triggers a full session-family revocation and locks out a legitimate user \u2014 but a policy too permissive about 'recent reuse' lets real stolen-token replay through undetected.",
+          "problem": "A client retrying a refresh call after a network timeout can present the same refresh token twice in quick succession; if the server treats every reuse of an already-consumed token as theft, this benign retry triggers a full session-family revocation and locks out a legitimate user — but a policy too permissive about 'recent reuse' lets real stolen-token replay through undetected.",
           "tech_decision": {
             "decision_title": "Narrow grace-window compare-and-swap with idempotent retry detection vs. strict single-use-or-instant-revoke",
             "chosen": "Refresh rotation uses a compare-and-swap on the token hash; a narrow grace window allows a retry of the exact same request (same client-generated idempotency key) to return the already-issued successor rather than treating it as reuse, while any genuinely different second use of the consumed token outside that window immediately revokes the family.",
@@ -1041,7 +1041,7 @@
             ],
             "tradeoff": "The idempotency-key bookkeeping adds a small amount of state to track per in-flight refresh request, and the grace window is a deliberate, tunable security-versus-usability knob that must be monitored."
           },
-          "math": "At 40,000 refreshes/sec peak with an estimated 0.5% client-retry rate from network blips, that's ~200 retried-refresh requests/sec that must be recognized as benign via the idempotency key \u2014 without this distinction, even a conservative 10% of those false-triggering family revocation would lock out ~20 legitimate sessions/sec at peak, clearly unacceptable for a payments platform's availability targets."
+          "math": "At 40,000 refreshes/sec peak with an estimated 0.5% client-retry rate from network blips, that's ~200 retried-refresh requests/sec that must be recognized as benign via the idempotency key — without this distinction, even a conservative 10% of those false-triggering family revocation would lock out ~20 legitimate sessions/sec at peak, clearly unacceptable for a payments platform's availability targets."
         },
         {
           "workflow": "Recover accounts and handle security notifications",
@@ -1055,9 +1055,9 @@
               "Failing closed for new proofs during a correctness-uncertain window (rather than guessing) prevents silently minting a session from stale state.",
               "Broadly replicating read-only signing keys and cached session state preserves the low-latency validation path for the 99%+ of traffic that's just token validation, not mutation."
             ],
-            "tradeoff": "During a regional partition, users whose home region is unreachable cannot complete recovery or credential changes until the partition heals or a controlled failover promotes a new home region \u2014 existing sessions can keep working, but new security-sensitive actions fail closed."
+            "tradeoff": "During a regional partition, users whose home region is unreachable cannot complete recovery or credential changes until the partition heals or a controlled failover promotes a new home region — existing sessions can keep working, but new security-sensitive actions fail closed."
           },
-          "math": "If an estimated 15% of the 80M accounts have a home region that becomes unreachable during a regional incident, roughly 12M accounts would be unable to complete recovery/credential-change actions (though their existing sessions keep validating locally) until failover promotion completes \u2014 a deliberately bounded, explicit-RTO tradeoff versus the unbounded dual-write-conflict risk of allowing active-active credential mutations everywhere."
+          "math": "If an estimated 15% of the 80M accounts have a home region that becomes unreachable during a regional incident, roughly 12M accounts would be unable to complete recovery/credential-change actions (though their existing sessions keep validating locally) until failover promotion completes — a deliberately bounded, explicit-RTO tradeoff versus the unbounded dual-write-conflict risk of allowing active-active credential mutations everywhere."
         }
       ],
       "implementation_plan": [
@@ -1108,11 +1108,11 @@
       "what_is_it": "A first-party login service for a global payments platform that authenticates consumers and business users with password and passwordless factors, applies adaptive risk-based step-up MFA, and issues revocable, short-lived access tokens backed by server-controlled sessions and rotating refresh-token families.",
       "out_of_scope": [
         "Full third-party identity-provider / federation protocol implementation details (we assume social/enterprise federation is one supported authenticator, not the core design).",
-        "Authorization/permission model (RBAC/ABAC) for what an authenticated user can do inside the application \u2014 this designs authentication and session issuance only.",
+        "Authorization/permission model (RBAC/ABAC) for what an authenticated user can do inside the application — this designs authentication and session issuance only.",
         "The fraud/risk-scoring model internals themselves; we treat the risk engine as a policy decision service consumed by login, not something we're building from scratch.",
         "Customer support tooling and manual account-recovery operator workflows beyond the automated self-service recovery API."
       ],
-      "planning_approach": "The hardest part of this problem is the refresh-token/session lifecycle: deciding what's stateless (fast, cacheable access tokens) versus what must be strongly consistent (credential changes, refresh rotation, revocation) and making sure a stolen or replayed refresh token is detected and contained without the common 'concurrent refresh looks like theft' false-positive trap. A close second is abuse prevention \u2014 defending login itself against credential stuffing and account enumeration without adding so much friction that legitimate users get locked out. I'll tackle the four workflows in request order: (1) register and verify identity, since nothing else exists without a verified account; (2) authenticate and apply adaptive risk/step-up, since that's the actual login decision; (3) issue and manage sessions/tokens, since that's where the stateless-vs-stateful tradeoff and refresh-replay defense live; (4) recover accounts and handle security notifications, which depends on the first three being correct to avoid becoming the weakest path attackers exploit.",
+      "planning_approach": "The hardest part of this problem is the refresh-token/session lifecycle: deciding what's stateless (fast, cacheable access tokens) versus what must be strongly consistent (credential changes, refresh rotation, revocation) and making sure a stolen or replayed refresh token is detected and contained without the common 'concurrent refresh looks like theft' false-positive trap. A close second is abuse prevention — defending login itself against credential stuffing and account enumeration without adding so much friction that legitimate users get locked out. I'll tackle the four workflows in request order: (1) register and verify identity, since nothing else exists without a verified account; (2) authenticate and apply adaptive risk/step-up, since that's the actual login decision; (3) issue and manage sessions/tokens, since that's where the stateless-vs-stateful tradeoff and refresh-replay defense live; (4) recover accounts and handle security notifications, which depends on the first three being correct to avoid becoming the weakest path attackers exploit.",
       "capacity_estimation": [
         {
           "metric": "Scale (registered users)",
@@ -1127,7 +1127,7 @@
         {
           "metric": "Peak token-refresh rate",
           "estimate": "~40,000 refreshes/sec at peak",
-          "derivation": "Refresh happens far more often than login (every access-token TTL expiry, e.g., every 10-15 min of active session) \u2014 assume ~2.5x peak login rate given many more active sessions than new logins at any instant."
+          "derivation": "Refresh happens far more often than login (every access-token TTL expiry, e.g., every 10-15 min of active session) — assume ~2.5x peak login rate given many more active sessions than new logins at any instant."
         },
         {
           "metric": "Read:write ratio (token validation vs. login/refresh writes)",
@@ -1142,7 +1142,7 @@
         {
           "metric": "Session/refresh-token record size",
           "estimate": "~400 bytes per Session + ~200 bytes per RefreshTokenFamily entry",
-          "derivation": "Device metadata, timestamps, assurance level, revocation flag for Session; token hash + rotation counter for RefreshTokenFamily \u2014 no raw secrets stored."
+          "derivation": "Device metadata, timestamps, assurance level, revocation flag for Session; token hash + rotation counter for RefreshTokenFamily — no raw secrets stored."
         },
         {
           "metric": "Daily session-store write growth",
@@ -1217,13 +1217,13 @@
             {
               "decision_title": "Short-lived signed access token + server session/refresh-family vs. pure stateless tokens or pure opaque sessions",
               "chosen": "Hybrid: short-lived (minutes) stateless access tokens validated locally from cached keys for routine requests, backed by a server-side Session and rotating RefreshTokenFamily that sensitive actions check live.",
-              "why_not": "Pure stateless signed tokens with longer life reduce central read load and survive brief auth-service outages, but revocation is delayed until expiry \u2014 unacceptable for a payments platform that needs immediate kill-switch capability on compromised accounts.",
+              "why_not": "Pure stateless signed tokens with longer life reduce central read load and survive brief auth-service outages, but revocation is delayed until expiry — unacceptable for a payments platform that needs immediate kill-switch capability on compromised accounts.",
               "why": [
                 "Short access-token TTL bounds the maximum damage window of a stolen token without requiring a live check on every request.",
                 "The server-side session gives immediate, authoritative revocation for sensitive actions (global sign-out, account compromise response).",
                 "Refresh-token-family rotation with reuse detection turns 'was this token stolen and replayed' into a detectable, actionable signal rather than an unanswerable question."
               ],
-              "tradeoff": "More moving parts than either pure extreme \u2014 requires both a fast local-validation path and a consistent session/refresh store, plus careful handling of the benign-concurrent-refresh-vs-theft distinction."
+              "tradeoff": "More moving parts than either pure extreme — requires both a fast local-validation path and a consistent session/refresh store, plus careful handling of the benign-concurrent-refresh-vs-theft distinction."
             }
           ],
           "known_issue": "Concurrent, legitimate refresh requests (e.g., a flaky network causing a client retry) can race and look identical to a stolen-token replay, risking either false-positive family revocation (locking out a real user) or a too-loose policy that lets real replay through."
@@ -1253,7 +1253,7 @@
           "known_issue": null
         }
       ],
-      "final_design_summary": "Users register through single-use purpose-bound challenges, authenticate through a credential-and-risk pipeline that returns only coarse step-up decisions, receive short-lived access tokens backed by a revocable session and reuse-detecting refresh-token family, and recover accounts through uniform-response, enumeration-resistant flows \u2014 with timing-side-channel closure, graduated risk tiers with measured false-positive rates, and a precise grace-window policy for benign-retry-versus-replay specifically closing the gaps a naive version of each workflow would leave open for a payments-grade identity system."
+      "final_design_summary": "Users register through single-use purpose-bound challenges, authenticate through a credential-and-risk pipeline that returns only coarse step-up decisions, receive short-lived access tokens backed by a revocable session and reuse-detecting refresh-token family, and recover accounts through uniform-response, enumeration-resistant flows — with timing-side-channel closure, graduated risk tiers with measured false-positive rates, and a precise grace-window policy for benign-retry-versus-replay specifically closing the gaps a naive version of each workflow would leave open for a payments-grade identity system."
     },
     {
       "case_id": "fde-model-api-04",
@@ -1409,7 +1409,7 @@
       "deep_dives": [
         {
           "workflow": "Submit and stream a generation",
-          "problem": "Once SSE bytes have been delivered to the client, the service cannot transparently retry the same request against a different deployment on backend failure, because a stochastic model would produce diverging or duplicated output under replay \u2014 yet the client still needs a clean way to recover.",
+          "problem": "Once SSE bytes have been delivered to the client, the service cannot transparently retry the same request against a different deployment on backend failure, because a stochastic model would produce diverging or duplicated output under replay — yet the client still needs a clean way to recover.",
           "tech_decision": {
             "decision_title": "Terminal-error-then-client-resubmit vs. transparent mid-stream failover",
             "chosen": "End the stream with one terminal, machine-readable retriable-error event after any bytes have been delivered, and let the client decide whether to submit a new request under a new idempotency key.",
@@ -1425,7 +1425,7 @@
         },
         {
           "workflow": "Admission control and model routing",
-          "problem": "Pre-admission token estimates are approximate, so under high concurrency the gap between reserved and actual token/concurrency usage can drift \u2014 either rejecting a tenant that actually has budget (false 429) or admitting more work than the backend can actually support.",
+          "problem": "Pre-admission token estimates are approximate, so under high concurrency the gap between reserved and actual token/concurrency usage can drift — either rejecting a tenant that actually has budget (false 429) or admitting more work than the backend can actually support.",
           "tech_decision": {
             "decision_title": "Pessimistic reservation with async reconciliation vs. exact pre-count via a synchronous tokenizer call",
             "chosen": "Reserve pessimistically against the estimated maximum tokens at admission time, then reconcile the exact actual usage asynchronously after generation completes, tolerating small bounded drift in the live counters.",
@@ -1441,7 +1441,7 @@
         },
         {
           "workflow": "Expose status and cancellation for async clients",
-          "problem": "A cancellation request can arrive while the backend call is already completing; without careful sequencing, the client can be told the request was cancelled while usage is still metered for a generation that actually finished, or the reverse \u2014 billed usage with no corresponding completed-state visible to the client.",
+          "problem": "A cancellation request can arrive while the backend call is already completing; without careful sequencing, the client can be told the request was cancelled while usage is still metered for a generation that actually finished, or the reverse — billed usage with no corresponding completed-state visible to the client.",
           "tech_decision": {
             "decision_title": "Monotonic cancellation-as-state-transition vs. side-channel cancellation signal",
             "chosen": "Model cancellation as one more state transition competing on the same monotonic version as completion, so whichever transition wins is the one that's recorded, and make downstream metering idempotent regardless of which one wins.",
@@ -1451,16 +1451,16 @@
               "Makes the system tolerant of network delay between a cancel request and backend completion without needing distributed locks.",
               "Keeps cancellation semantics explainable: 'best effort, resolved by whichever event reaches the state store first.'"
             ],
-            "tradeoff": "A client can occasionally see a completed result even after requesting cancellation, if the backend finished first \u2014 this must be documented as expected best-effort behavior, not a bug."
+            "tradeoff": "A client can occasionally see a completed result even after requesting cancellation, if the backend finished first — this must be documented as expected best-effort behavior, not a bug."
           },
-          "math": "At 1,000 in-flight requests/sec with backend durations spread roughly 200ms-3s, an estimated ~3% of cancellation calls arrive within 50ms of natural completion \u2014 a small enough fraction that resolving the race via a single version-ordered transition is cheap compared to building a separate distributed cancellation-lock protocol."
+          "math": "At 1,000 in-flight requests/sec with backend durations spread roughly 200ms-3s, an estimated ~3% of cancellation calls arrive within 50ms of natural completion — a small enough fraction that resolving the race via a single version-ordered transition is cheap compared to building a separate distributed cancellation-lock protocol."
         },
         {
           "workflow": "Meter usage and produce tenant-scoped audit reporting",
           "problem": "Independent of metering mechanics, the single biggest remaining cross-cutting risk is the model lifecycle itself: a customer-facing alias could shift to a new pinned model version that silently changes quality, safety behavior, or latency for every tenant relying on that alias.",
           "tech_decision": {
             "decision_title": "Canary rollout behind a pinned alias with automatic rollback vs. direct alias repoint on release",
-            "chosen": "Shift a small, tenant-safe cohort of traffic to a candidate model/policy version, compare quality/safety/latency metrics against the evaluation suite, and only then move the alias for all tenants \u2014 with automatic rollback on guardrail regression.",
+            "chosen": "Shift a small, tenant-safe cohort of traffic to a candidate model/policy version, compare quality/safety/latency metrics against the evaluation suite, and only then move the alias for all tenants — with automatic rollback on guardrail regression.",
             "why_not": "Repointing an alias directly to a new version for all tenants at once was rejected because it would silently change behavior under a 'pinned' contract, with no detection window before every tenant is affected.",
             "why": [
               "Honors the alias-pinning promise: tenants naming a pinned alias never get surprised by a behavior change without an evaluation gate.",
@@ -1494,7 +1494,7 @@
       "level_expectations": {
         "mid_level": "Clarifies the meaning of sampling, defines a usable request and streaming response, identifies authentication, quotas, model routing, safety, tenant isolation, storage, and basic retries, and can trace one request end to end.",
         "senior": "Makes ambiguity and customer constraints drive the design; distinguishes admission, routing, execution, streaming, and metering; handles idempotency and partial-stream semantics; designs tenant fairness, circuit breaking, privacy, model lifecycle, evaluation, and cost controls; and explains a staged rollout with measurable SLOs and failure tests.",
-        "staff": "Beyond the senior bar, a staff-level answer reasons with experience about the sharpest tradeoffs here: that pessimistic token reservation versus exact pre-counting is really a latency-budget-versus-billing-accuracy tradeoff bounded by the 100ms gateway overhead target, that cancellation races are better solved by unifying cancellation into the same version-ordered state machine than by inventing a separate signal, and that alias-pinning only means anything if model upgrades are gated by canaries and automatic rollback rather than operational discipline alone \u2014 and can defend why narrowing failover to a compatibility set is worth the availability cost it creates during regional outages."
+        "staff": "Beyond the senior bar, a staff-level answer reasons with experience about the sharpest tradeoffs here: that pessimistic token reservation versus exact pre-counting is really a latency-budget-versus-billing-accuracy tradeoff bounded by the 100ms gateway overhead target, that cancellation races are better solved by unifying cancellation into the same version-ordered state machine than by inventing a separate signal, and that alias-pinning only means anything if model upgrades are gated by canaries and automatic rollback rather than operational discipline alone — and can defend why narrowing failover to a compatibility set is worth the availability cost it creates during regional outages."
       },
       "provenance_note": "The source question and company attribution come from Aced. The source_backed_facts summarize the cited Microsoft Learn AI gateway guidance. The enterprise beta scenario, API contract, numerical targets, entities, policies, and operational choices are explicitly adapted or proposed interview-case additions, not claims that the source question or Microsoft prescribes this exact system.",
       "source_backed_facts": [
@@ -1521,9 +1521,9 @@
       },
       "what_is_it": "A multi-tenant gateway that lets approved enterprise customers call a stable, provider-neutral API to sample one-shot or conversational text from several large models, with streaming output, enforced quotas, safety checks, and tenant isolation, without ever exposing backend credentials or deployment topology.",
       "out_of_scope": [
-        "Training, fine-tuning, or hosting the underlying foundation models themselves \u2014 this system only routes and governs access to already-deployed models.",
+        "Training, fine-tuning, or hosting the underlying foundation models themselves — this system only routes and governs access to already-deployed models.",
         "Non-text modalities (image, audio, video generation) and tool-calling/agent orchestration beyond the first-release text scope.",
-        "Customer-facing billing/invoicing UI and payment collection \u2014 usage records feed a downstream billing system, which is out of scope.",
+        "Customer-facing billing/invoicing UI and payment collection — usage records feed a downstream billing system, which is out of scope.",
         "Fine-grained per-user product analytics or UX for the customer's own application built on top of this API."
       ],
       "planning_approach": "The hardest part of this problem is not generation itself but governing many mutually-distrusting tenants sharing scarce, expensive model capacity while still giving each tenant a stable, low-latency, streaming developer experience: admission control, routing, and metering all have to be correct under retries and partial failures, and none of it can leak state across tenants. I'll tackle the workflows in request-lifecycle order: first the core submit-and-stream generation path so the contract (request/response shape, streaming, idempotency) is fixed; then admission control, quota, and routing, since nothing should reach a model without passing through them; then asynchronous status/cancellation for long-running or disconnected clients; and finally usage metering, safety, and tenant-scoped audit reporting, which depends on everything upstream having already produced durable, attributable records.",
@@ -1560,7 +1560,7 @@
         },
         {
           "metric": "Storage growth / day",
-          "estimate": "~800 req/s * 86,400s \u2248 69M records/day * 500 bytes \u2248 34.5 GB/day",
+          "estimate": "~800 req/s * 86,400s ≈ 69M records/day * 500 bytes ≈ 34.5 GB/day",
           "derivation": "Average sustained request rate times daily seconds times per-record size, for usage/audit storage only."
         },
         {
@@ -1571,7 +1571,7 @@
         {
           "metric": "Peak streaming bandwidth",
           "estimate": "~6-7 MB/s aggregate SSE output at peak",
-          "derivation": "~3,200 concurrent peak requests * ~500 output tokens * ~4 bytes/token amortized over a ~3s stream \u2248 2KB/response \u2248 6.4 MB/s aggregate delta bandwidth."
+          "derivation": "~3,200 concurrent peak requests * ~500 output tokens * ~4 bytes/token amortized over a ~3s stream ≈ 2KB/response ≈ 6.4 MB/s aggregate delta bandwidth."
         }
       ],
       "workflows": [
@@ -1598,7 +1598,7 @@
               "tradeoff": "Supporting both modes roughly doubles state-machine and billing complexity (partial-stream usage accounting, mid-stream cancellation, and resumable status all need distinct handling)."
             }
           ],
-          "known_issue": "After the first output byte has been streamed, a backend failure cannot be silently retried against another deployment, because stochastic generation means a replayed request would diverge from (or duplicate) what the client already received \u2014 this needs explicit, auditable handling rather than ad hoc failover."
+          "known_issue": "After the first output byte has been streamed, a backend failure cannot be silently retried against another deployment, because stochastic generation means a replayed request would diverge from (or duplicate) what the client already received — this needs explicit, auditable handling rather than ad hoc failover."
         },
         {
           "name": "Admission control and model routing",
@@ -1608,7 +1608,7 @@
             "The router filters deployments by entitlement, model version, modality, and residency, then ranks healthy candidates by priority and available capacity.",
             "A model adapter translates the canonical request into the provider protocol and authenticates to the backend using managed identity, never a customer-visible key.",
             "If the selected backend returns 429 or a retriable failure before output begins, the router respects Retry-After, may trip the circuit breaker, and makes one bounded attempt on a compatible deployment.",
-            "If the tenant's own quota is exhausted, the gateway returns 429; if provider capacity is unavailable, it returns 503 \u2014 both with request IDs and retry guidance, never a silent downgrade."
+            "If the tenant's own quota is exhausted, the gateway returns 429; if provider capacity is unavailable, it returns 503 — both with request IDs and retry guidance, never a silent downgrade."
           ],
           "tech_decisions": [
             {
@@ -1616,7 +1616,7 @@
               "chosen": "Fail over only to deployments that are explicitly marked compatible (same pinned version, same region/residency policy, same capacity class).",
               "why_not": "Failing over to any available backend regardless of region or version was rejected because cross-region routing can violate residency constraints and a different model version can silently change output behavior under a pinned alias.",
               "why": [
-                "Keeps the alias-pinning contract honest \u2014 customers who pin a model version never silently get a different one.",
+                "Keeps the alias-pinning contract honest — customers who pin a model version never silently get a different one.",
                 "Avoids violating contractual/regulatory residency commitments during an outage.",
                 "Limits blast radius of a bad deployment to its own compatibility pool instead of cascading retries tenant-wide."
               ],
@@ -1673,7 +1673,7 @@
           "known_issue": null
         }
       ],
-      "final_design_summary": "The system accepts and streams generations through a policy-and-quota-gated gateway, routes only within explicitly compatible deployments with no-replay-after-output-begins semantics, exposes durable async status and version-ordered cancellation, and closes the loop with asynchronously reconciled, tenant-isolated usage and audit records \u2014 with canaried, rollback-capable model-version changes protecting every tenant from an unannounced behavior shift behind a pinned alias."
+      "final_design_summary": "The system accepts and streams generations through a policy-and-quota-gated gateway, routes only within explicitly compatible deployments with no-replay-after-output-begins semantics, exposes durable async status and version-ordered cancellation, and closes the loop with asynchronously reconciled, tenant-isolated usage and audit records — with canaried, rollback-capable model-version changes protecting every tenant from an unannounced behavior shift behind a pinned alias."
     },
     {
       "case_id": "fde-rag-05",
@@ -1872,7 +1872,7 @@
         },
         {
           "workflow": "Generate a grounded answer with citations or decline",
-          "problem": "Retrieved evidence is, by design, untrusted data that the assistant must summarize \u2014 but an adversarial document can embed instructions aimed at the model itself, attempting to override the system prompt or exfiltrate content from another passage via indirect prompt injection.",
+          "problem": "Retrieved evidence is, by design, untrusted data that the assistant must summarize — but an adversarial document can embed instructions aimed at the model itself, attempting to override the system prompt or exfiltrate content from another passage via indirect prompt injection.",
           "tech_decision": {
             "decision_title": "Instruction/data separation plus an injection classifier over retrieved chunks vs. relying on system-prompt wording alone",
             "chosen": "Strictly separate system instructions from evidence in the prompt structure, label all evidence as untrusted data, and run a lightweight classifier over retrieved chunks to flag likely injection attempts before they reach the model.",
@@ -1888,7 +1888,7 @@
         },
         {
           "workflow": "Expose ingestion status, propagate updates, and capture feedback",
-          "problem": "Independent of indexing mechanics, the single biggest remaining cross-cutting risk is legal/compliance deletion: ensuring a tombstoned document's content is actually, verifiably removed from every derived store \u2014 vectors, caches, conversation memory, and evaluation sets \u2014 not just marked deleted in the primary index.",
+          "problem": "Independent of indexing mechanics, the single biggest remaining cross-cutting risk is legal/compliance deletion: ensuring a tombstoned document's content is actually, verifiably removed from every derived store — vectors, caches, conversation memory, and evaluation sets — not just marked deleted in the primary index.",
           "tech_decision": {
             "decision_title": "Lineage-tracked tombstone fan-out job vs. relying on TTL-based expiry of derived artifacts",
             "chosen": "Maintain document-to-derived-artifact lineage and run an explicit fan-out job on deletion that removes the document from every derived store it touched.",
@@ -1925,7 +1925,7 @@
       "level_expectations": {
         "mid_level": "Separates ingestion from querying, proposes chunking, embeddings, a vector or hybrid index, an orchestrator and model, citations, authentication, metadata filters, incremental updates, and basic quality and failure handling.",
         "senior": "Starts from corpus, ACL, residency, freshness, and evaluation constraints; enforces authorization inside retrieval; versions every pipeline stage; designs idempotent update and deletion, safe index migration, no-answer behavior, citation validation, injection defenses, privacy-safe observability, and measurable retrieval and answer-quality gates with staged rollout.",
-        "staff": "Beyond the senior bar, a staff-level answer carries clear, experience-backed opinions on the hardest tradeoffs: that ACL mirroring for query-time speed is only safe if paired with an explicit, SLA-bounded revocation window and deny-by-default on missing metadata; that dual-index rollout is non-negotiable the moment embeddings or chunking change, because in-place re-indexing has no honest rollback story; and that prompt-injection defense for retrieved evidence has to be treated as an ongoing adversarial-evaluation problem, not a one-time prompt-wording fix \u2014 and can explain why legal deletion demands lineage-tracked fan-out rather than TTL-based hygiene."
+        "staff": "Beyond the senior bar, a staff-level answer carries clear, experience-backed opinions on the hardest tradeoffs: that ACL mirroring for query-time speed is only safe if paired with an explicit, SLA-bounded revocation window and deny-by-default on missing metadata; that dual-index rollout is non-negotiable the moment embeddings or chunking change, because in-place re-indexing has no honest rollback story; and that prompt-injection defense for retrieved evidence has to be treated as an ongoing adversarial-evaluation problem, not a one-time prompt-wording fix — and can explain why legal deletion demands lineage-tracked fan-out rather than TTL-based hygiene."
       },
       "provenance_note": "The source question and company attribution come from Aced. The source_backed_facts summarize the cited Microsoft Azure AI Search RAG guidance. The engineering-company scenario, source mix, APIs, numerical targets, authorization implementation, threat controls, and rollout plan are explicitly adapted or proposed additions. The linked Azure-Samples application is supporting implementation evidence and warns that extra production security work is required.",
       "source_backed_facts": [
@@ -1952,12 +1952,12 @@
       },
       "what_is_it": "An internal assistant that answers employee questions over private SharePoint, data-lake, ticket, and policy content by retrieving only documents the asking employee is already authorized to read, grounding the answer strictly in that evidence, and attaching verifiable citations or declining when evidence is weak.",
       "out_of_scope": [
-        "Agentic actions that modify source systems (e.g., updating a ticket or document) \u2014 this release only answers questions, it does not write back to sources.",
-        "Fine-tuning or training a custom embedding/generation model \u2014 the design uses pinned, off-the-shelf embedding and generation models behind versioned aliases.",
+        "Agentic actions that modify source systems (e.g., updating a ticket or document) — this release only answers questions, it does not write back to sources.",
+        "Fine-tuning or training a custom embedding/generation model — the design uses pinned, off-the-shelf embedding and generation models behind versioned aliases.",
         "Building a general-purpose enterprise search UI beyond the assistant's own query and citation surface.",
         "Real-time collaborative document editing or workflow automation across the connected repositories."
       ],
-      "planning_approach": "The hardest part of this problem is that authorization has to be enforced deterministically inside retrieval itself \u2014 never left to model judgment \u2014 while the corpus is simultaneously being updated, deleted, and re-permissioned incrementally, and the model still has to resist adversarial content hidden inside the very documents it's supposed to trust as evidence. I'll tackle the workflows in pipeline order: first ingestion and indexing (since nothing can be answered from a document that isn't correctly chunked, embedded, and ACL-tagged), then query-time authorization and hybrid retrieval (since no evidence should reach the model unless it's both relevant and authorized), then grounded generation with citation validation (since a fluent but ungrounded answer is worse than a decline), and finally status, incremental propagation, and feedback/evaluation, which depend on the first three workflows already producing durable, versioned, and auditable artifacts.",
+      "planning_approach": "The hardest part of this problem is that authorization has to be enforced deterministically inside retrieval itself — never left to model judgment — while the corpus is simultaneously being updated, deleted, and re-permissioned incrementally, and the model still has to resist adversarial content hidden inside the very documents it's supposed to trust as evidence. I'll tackle the workflows in pipeline order: first ingestion and indexing (since nothing can be answered from a document that isn't correctly chunked, embedded, and ACL-tagged), then query-time authorization and hybrid retrieval (since no evidence should reach the model unless it's both relevant and authorized), then grounded generation with citation validation (since a fluent but ungrounded answer is worse than a decline), and finally status, incremental propagation, and feedback/evaluation, which depend on the first three workflows already producing durable, versioned, and auditable artifacts.",
       "capacity_estimation": [
         {
           "metric": "Scale",
@@ -1967,7 +1967,7 @@
         {
           "metric": "Query volume (reads)",
           "estimate": "~60,000 queries/day, ~2-17 QPS average-to-peak over an 8-hour business day",
-          "derivation": "20,000 DAU * ~3 questions/day \u2248 60,000 queries/day; spread over ~28,800 business-hour seconds gives ~2 QPS average, with an ~8x peak multiplier for business-hour overlap."
+          "derivation": "20,000 DAU * ~3 questions/day ≈ 60,000 queries/day; spread over ~28,800 business-hour seconds gives ~2 QPS average, with an ~8x peak multiplier for business-hour overlap."
         },
         {
           "metric": "Ingestion events (writes)",
@@ -1991,7 +1991,7 @@
         },
         {
           "metric": "Storage growth / day",
-          "estimate": "~100,000 doc updates/day * 15 chunks * 7 KB \u2248 10.5 GB/day",
+          "estimate": "~100,000 doc updates/day * 15 chunks * 7 KB ≈ 10.5 GB/day",
           "derivation": "Daily churned documents re-chunked and re-embedded at the same per-chunk size as the base corpus."
         },
         {
@@ -2015,7 +2015,7 @@
             {
               "decision_title": "Custom ingestion pipeline vs. a fully managed indexer",
               "chosen": "Build a custom pipeline with explicit control over parsing, ACL capture, chunking, quarantine, and version control.",
-              "why_not": "A fully managed indexer was rejected as the sole ingestion path because it gives up fine-grained control over ACL metadata capture, structure-aware chunking choices, and poison-document quarantine \u2014 all of which are safety-critical for a private-data assistant.",
+              "why_not": "A fully managed indexer was rejected as the sole ingestion path because it gives up fine-grained control over ACL metadata capture, structure-aware chunking choices, and poison-document quarantine — all of which are safety-critical for a private-data assistant.",
               "why": [
                 "Gives direct control over how ACL metadata is captured and attached to every chunk, which is the foundation of deny-by-default authorization.",
                 "Allows structure-aware chunking tuned per source type rather than a one-size-fits-all default.",
@@ -2031,7 +2031,7 @@
           "steps": [
             "Entra authenticates the employee at query time; the API derives tenant, user, and group claims from the validated identity.",
             "A query planner normalizes the question, adds conversation context within a token budget, and generates both lexical and vector queries.",
-            "The planner constructs server-side region, classification, and ACL filters from the resolved identity \u2014 authorization is applied before or during retrieval, never after.",
+            "The planner constructs server-side region, classification, and ACL filters from the resolved identity — authorization is applied before or during retrieval, never after.",
             "Hybrid retrieval executes over only authorized content; semantic reranking orders the best passages, and a score/evidence threshold can trigger a no-answer path.",
             "The orchestrator deduplicates passages, favors authoritative/current document versions, and packs evidence within the context token budget."
           ],
@@ -2039,13 +2039,13 @@
             {
               "decision_title": "Pre-filtering by ACL inside retrieval vs. post-filtering results after retrieval",
               "chosen": "Constrain the search itself with server-constructed ACL filters so unauthorized chunks are never even candidates.",
-              "why_not": "Post-filtering \u2014 running retrieval unconstrained and removing unauthorized chunks afterward \u2014 was rejected because it risks side channels (e.g., inferring a document's existence from result counts or timing) and can leave too few authorized results after filtering.",
+              "why_not": "Post-filtering — running retrieval unconstrained and removing unauthorized chunks afterward — was rejected because it risks side channels (e.g., inferring a document's existence from result counts or timing) and can leave too few authorized results after filtering.",
               "why": [
                 "Removes unauthorized content from the candidate set entirely, so it can never leak via scoring, counts, or reranking behavior.",
                 "Avoids wasted retrieval compute on chunks that will just be discarded.",
                 "Makes authorization deterministic and independent of model judgment, matching the hard NFR requirement."
               ],
-              "tradeoff": "Requires every index write and every query to carry correct, current ACL metadata \u2014 if that metadata is stale or missing, pre-filtering can't help, so the pipeline must guarantee it's attached at ingestion time."
+              "tradeoff": "Requires every index write and every query to carry correct, current ACL metadata — if that metadata is stale or missing, pre-filtering can't help, so the pipeline must guarantee it's attached at ingestion time."
             }
           ],
           "known_issue": "ACL metadata mirrored into the index can drift from the authoritative source between permission changes and index refresh, creating a revocation-lag window in which a user who just lost access could still retrieve a chunk until the mirror catches up."
@@ -2053,7 +2053,7 @@
         {
           "name": "Generate a grounded answer with citations or decline",
           "steps": [
-            "The model receives system instructions, the user question, and only the authorized, packed evidence \u2014 each passage labeled as untrusted data with an opaque citation ID.",
+            "The model receives system instructions, the user question, and only the authorized, packed evidence — each passage labeled as untrusted data with an opaque citation ID.",
             "The model must answer only from that evidence, cite citation IDs, surface conflicts, and decline or ask a clarifying question when support is missing.",
             "A postprocessor validates that every citation resolves to a chunk that was actually retrieved, strips unsupported links or leaked system text, and applies output safety policy.",
             "The validated answer and citation metadata (document title, page/section) are streamed or returned to the user with a request ID."
@@ -2071,7 +2071,7 @@
               "tradeoff": "Adds a validation step to every response and means the model's citation behavior must be constrained by prompt design and evaluated continuously, rather than trusted outright."
             }
           ],
-          "known_issue": "A sufficiently crafted document can still attempt indirect prompt injection from inside the 'untrusted evidence' it supplies \u2014 trying to get the model to ignore its instructions, leak content from another passage, or fabricate an authoritative-sounding directive."
+          "known_issue": "A sufficiently crafted document can still attempt indirect prompt injection from inside the 'untrusted evidence' it supplies — trying to get the model to ignore its instructions, leak content from another passage, or fabricate an authoritative-sounding directive."
         },
         {
           "name": "Expose ingestion status, propagate updates, and capture feedback",
@@ -2252,7 +2252,7 @@
           "tech_decision": {
             "decision_title": "UNKNOWN as a first-class state with same-key-only retry vs. treating ambiguous timeouts as failed and safe to retry under a new key",
             "chosen": "Model UNKNOWN as an explicit terminal-pending state; any retry of an ambiguous attempt must reuse the exact same provider idempotency key and parameters until a sweeper resolves the true outcome.",
-            "why_not": "Treating any timeout as a failure safe to retry with a new idempotency key was rejected because the provider may have actually committed the charge \u2014 retrying under a new key would create a second, real business charge.",
+            "why_not": "Treating any timeout as a failure safe to retry with a new idempotency key was rejected because the provider may have actually committed the charge — retrying under a new key would create a second, real business charge.",
             "why": [
               "Matches provider guidance (e.g., Stripe's documented behavior) that an unresolved operation should be reconciled, not retried under a new key.",
               "Makes 'unknown' a queryable, alertable state instead of a silently swallowed error.",
@@ -2264,7 +2264,7 @@
         },
         {
           "workflow": "Execute the provider operation and post ledger entries",
-          "problem": "Two commands for the same payment \u2014 such as a capture and a cancel submitted close together \u2014 can race; without strict per-payment serialization and version checking, both could be processed as if they succeeded, leaving the ledger in an impossible state (e.g., money both captured and the authorization cancelled).",
+          "problem": "Two commands for the same payment — such as a capture and a cancel submitted close together — can race; without strict per-payment serialization and version checking, both could be processed as if they succeeded, leaving the ledger in an impossible state (e.g., money both captured and the authorization cancelled).",
           "tech_decision": {
             "decision_title": "Per-payment serialized command processing with expectedVersion compare-and-set vs. optimistic merge resolved later at reconciliation",
             "chosen": "Partition command processing by paymentId so commands for the same payment are handled strictly in order, with each command checking an expectedVersion via compare-and-set before applying.",
@@ -2280,7 +2280,7 @@
         },
         {
           "workflow": "Ingest webhooks, poll, and reconcile",
-          "problem": "A webhook can be dropped entirely \u2014 not just delayed or duplicated \u2014 and the gap between when that real state change happened at the provider and when the system notices it is bounded only by how aggressively (and expensively) the sweeper and reconciliation loops poll.",
+          "problem": "A webhook can be dropped entirely — not just delayed or duplicated — and the gap between when that real state change happened at the provider and when the system notices it is bounded only by how aggressively (and expensively) the sweeper and reconciliation loops poll.",
           "tech_decision": {
             "decision_title": "Tiered polling cadence (fast UNKNOWN/overdue-PENDING sweep, slower webhook-gap poll, nightly settlement reconciliation) vs. a single fixed-interval poll for everything",
             "chosen": "Run a fast, frequent sweep only over the small set of truly unresolved (UNKNOWN/overdue-PENDING) attempts, a slower webhook-gap poll over recently active payments, and a full nightly reconciliation against provider settlement reports.",
@@ -2290,7 +2290,7 @@
               "Keeps the expensive, full-volume reconciliation pass off the real-time critical path, running it as an off-peak batch job instead.",
               "Scales independently: the fast sweep's cost grows with the (small) exception rate, not with total payment volume."
             ],
-            "tradeoff": "More operational complexity than a single poller \u2014 three loops with three cadences and three sets of alerting thresholds to maintain."
+            "tradeoff": "More operational complexity than a single poller — three loops with three cadences and three sets of alerting thresholds to maintain."
           },
           "math": "Running the fast UNKNOWN/overdue-PENDING sweep every 30 seconds over an estimated 0.5% in-flight exception rate at 500 req/s (~2.5 payments/sec) keeps the backlog small, while the nightly settlement reconciliation is sized for the full daily volume of roughly 10M payments without competing with the real-time acceptance path."
         },
@@ -2354,12 +2354,12 @@
       },
       "what_is_it": "A payment service for an online marketplace that accepts payment attempts, calls one of several external providers to authorize/capture/cancel/refund, reports an honest (possibly UNKNOWN or PENDING) status to checkout, and maintains an immutable, reconcilable ledger even when providers, webhooks, queues, or databases fail.",
       "out_of_scope": [
-        "Fraud detection/risk scoring models \u2014 the design assumes fraud signals are consumed as an input, not built here.",
-        "The merchant-facing payout and tax-reporting product UI \u2014 this system produces the ledger and reconciliation data that such a product would consume.",
-        "Building a new PCI-compliant card vault \u2014 raw card data is tokenized and handled by the payment provider/tokenization vendor, not stored in this application.",
-        "Multi-provider automatic failover for conversion optimization \u2014 only single-active-provider-per-payment correctness is in scope for this release."
+        "Fraud detection/risk scoring models — the design assumes fraud signals are consumed as an input, not built here.",
+        "The merchant-facing payout and tax-reporting product UI — this system produces the ledger and reconciliation data that such a product would consume.",
+        "Building a new PCI-compliant card vault — raw card data is tokenized and handled by the payment provider/tokenization vendor, not stored in this application.",
+        "Multi-provider automatic failover for conversion optimization — only single-active-provider-per-payment correctness is in scope for this release."
       ],
-      "planning_approach": "The hardest part of this problem is that every retry \u2014 from the client, from a worker, or from a provider webhook \u2014 must never produce a second real-world charge or refund, and a timeout must be treated as an unknown outcome rather than coerced into a false success or false failure. I'll tackle the workflows in the order money actually moves: first accepting a payment attempt and binding it to an idempotency key before any provider is called; then executing the provider operation under per-payment ordering and posting the resulting ledger entries; then ingesting webhooks and running the reconciliation loops that catch everything the synchronous path couldn't resolve; and finally publishing state changes downstream and isolating provider failures so one provider's outage can't take the whole payment service down with it.",
+      "planning_approach": "The hardest part of this problem is that every retry — from the client, from a worker, or from a provider webhook — must never produce a second real-world charge or refund, and a timeout must be treated as an unknown outcome rather than coerced into a false success or false failure. I'll tackle the workflows in the order money actually moves: first accepting a payment attempt and binding it to an idempotency key before any provider is called; then executing the provider operation under per-payment ordering and posting the resulting ledger entries; then ingesting webhooks and running the reconciliation loops that catch everything the synchronous path couldn't resolve; and finally publishing state changes downstream and isolating provider failures so one provider's outage can't take the whole payment service down with it.",
       "capacity_estimation": [
         {
           "metric": "Scale",
@@ -2388,12 +2388,12 @@
         },
         {
           "metric": "Daily volume",
-          "estimate": "~120 req/s * 86,400s \u2248 10M payments/day",
+          "estimate": "~120 req/s * 86,400s ≈ 10M payments/day",
           "derivation": "Sustained average create rate times seconds per day."
         },
         {
           "metric": "Storage growth / day",
-          "estimate": "~10M payments/day * 1.5 KB \u2248 15 GB/day",
+          "estimate": "~10M payments/day * 1.5 KB ≈ 15 GB/day",
           "derivation": "Daily payment volume times per-payment storage footprint."
         },
         {
@@ -2425,7 +2425,7 @@
               "tradeoff": "Relational storage and transactions are a scaling constraint that need deliberate partitioning and hot-merchant isolation, unlike a horizontally trivial cache."
             }
           ],
-          "known_issue": "A worker can crash after calling the provider but before persisting the response, or the provider's response itself can be lost on the network \u2014 in either case, the true remote state is ambiguous relative to the local record and must not be guessed at."
+          "known_issue": "A worker can crash after calling the provider but before persisting the response, or the provider's response itself can be lost on the network — in either case, the true remote state is ambiguous relative to the local record and must not be guessed at."
         },
         {
           "name": "Execute the provider operation and post ledger entries",
@@ -2449,7 +2449,7 @@
               "tradeoff": "Higher storage and implementation effort than a mutable balance field, since every adjustment requires a new balanced posting rather than a simple update."
             }
           ],
-          "known_issue": "Two valid-looking commands for the same authorization \u2014 for example a capture and a cancel issued concurrently \u2014 could both appear to succeed and corrupt the ledger if command processing for a single payment isn't strictly serialized and version-checked."
+          "known_issue": "Two valid-looking commands for the same authorization — for example a capture and a cancel issued concurrently — could both appear to succeed and corrupt the ledger if command processing for a single payment isn't strictly serialized and version-checked."
         },
         {
           "name": "Ingest webhooks, poll, and reconcile",
@@ -2464,7 +2464,7 @@
             {
               "decision_title": "Three independent correctness loops (webhook consumer, operational sweeper, finance reconciliation) vs. relying on webhooks alone",
               "chosen": "Run a fast webhook consumer for the common case, plus a polling sweeper for UNKNOWN/webhook-gap attempts, plus a periodic finance reconciliation against provider settlement reports.",
-              "why_not": "Relying solely on provider webhooks was rejected because webhooks are documented to be duplicated, unordered, and occasionally simply never delivered \u2014 a webhook-only design would leave such attempts permanently stuck.",
+              "why_not": "Relying solely on provider webhooks was rejected because webhooks are documented to be duplicated, unordered, and occasionally simply never delivered — a webhook-only design would leave such attempts permanently stuck.",
               "why": [
                 "The sweeper catches the specific failure mode webhooks can't: a webhook that is dropped entirely, not just delayed.",
                 "Finance reconciliation is a backstop against any logic bug or edge case in both the webhook and sweeper paths, checked against the provider's own settlement truth.",
@@ -3133,7 +3133,7 @@
           "action": "Canary one production line with human confirmation, integrate idempotent work-order creation, measure business and model outcomes, run outage and backfill drills, then scale by reusable site adapters and capacity tests."
         }
       ],
-      "spoken_answer_60_seconds": "I would separate durable ingestion, canonical processing, prediction, and the operator experience. Small authenticated telemetry enters IoT Hub and large JSON, CSV, or XML batches land in Data Lake Storage. Every payload first goes to an immutable raw zone. A versioned parser validates schema, quarantines bad records, normalizes units, and produces canonical readings with stable event IDs, event time, ingest time, and lineage. Event Hubs decouples consumers; Azure Data Explorer serves recent time-series analysis, while the lake supports replay and training. Event-time processors build versioned features and an approved model emits idempotent failure predictions. The UI shows an asset risk queue, evidence freshness, contributing signals, and a recommended action\u2014not raw model scores. I would design for duplicates, late data, schema drift, hot partitions, model rollback, and site-scoped authorization, then launch one failure mode in shadow and canary modes before automating maintenance actions.",
+      "spoken_answer_60_seconds": "I would separate durable ingestion, canonical processing, prediction, and the operator experience. Small authenticated telemetry enters IoT Hub and large JSON, CSV, or XML batches land in Data Lake Storage. Every payload first goes to an immutable raw zone. A versioned parser validates schema, quarantines bad records, normalizes units, and produces canonical readings with stable event IDs, event time, ingest time, and lineage. Event Hubs decouples consumers; Azure Data Explorer serves recent time-series analysis, while the lake supports replay and training. Event-time processors build versioned features and an approved model emits idempotent failure predictions. The UI shows an asset risk queue, evidence freshness, contributing signals, and a recommended action—not raw model scores. I would design for duplicates, late data, schema drift, hot partitions, model rollback, and site-scoped authorization, then launch one failure mode in shadow and canary modes before automating maintenance actions.",
       "level_expectations": {
         "mid_level": "Clarifies volume, latency, formats, failure horizon, and user needs; separates streaming from batch ingestion; proposes raw storage, parsing and validation, a queue or stream, canonical storage, model scoring, and a usable dashboard; discusses retries, malformed data, monitoring, and basic access control.",
         "senior": "Quantifies business error costs and SLOs; distinguishes event time from ingest time; designs stable IDs, idempotency, quarantine, lineage, replay, schema and feature versioning, hot-partition handling, backpressure, stale-data UX, model rollout and rollback, authorization boundaries, and a phased delivery and evaluation plan tied to avoided downtime.",
@@ -3862,7 +3862,7 @@
             ],
             "tradeoff": "Still incurs a measurable two-redirect round trip that must be budgeted into the latency SLO, rather than the near-zero cost of a (less reliable) iframe check."
           },
-          "math": "At roughly 150ms regional RTT to the central domain plus ~50ms authorization-endpoint processing, a warm SSO round trip costs about 2x150ms + 50ms \u2248 350ms, consistent with the low-hundreds-of-milliseconds NFR budget; at a peak of ~700 new-site-session establishments/sec this adds roughly 700 req/sec sustained load on the authorize endpoint."
+          "math": "At roughly 150ms regional RTT to the central domain plus ~50ms authorization-endpoint processing, a warm SSO round trip costs about 2x150ms + 50ms ≈ 350ms, consistent with the low-hundreds-of-milliseconds NFR budget; at a peak of ~700 new-site-session establishments/sec this adds roughly 700 req/sec sustained load on the authorize endpoint."
         },
         {
           "workflow": "Token issuance, validation & assurance",
@@ -3878,7 +3878,7 @@
             ],
             "tradeoff": "Slightly larger JWKS payload and added operational complexity of tracking key lifecycle state (active/next/retired)."
           },
-          "math": "With ~50 relying sites each caching JWKS for 10 minutes, an emergency rotation fully propagates within one cache TTL (\u226410 minutes) instead of causing simultaneous validation failure across an estimated 2,000,000 daily token validations."
+          "math": "With ~50 relying sites each caching JWKS for 10 minutes, an emergency rotation fully propagates within one cache TTL (≤10 minutes) instead of causing simultaneous validation failure across an estimated 2,000,000 daily token validations."
         },
         {
           "workflow": "Global logout & session revocation propagation",
@@ -3894,14 +3894,14 @@
             ],
             "tradeoff": "Requires every relying site to implement idempotent event consumption and periodic reconciliation polling, adding integration burden for each site team."
           },
-          "math": "If local site-session TTL is capped at 1 hour, the worst-case exposure after a missed back-channel event is bounded to \u226460 minutes; a reconciliation job running every 5 minutes against ~500,000 active sessions needs to check roughly 1,700 sessions/sec to stay within one TTL window."
+          "math": "If local site-session TTL is capped at 1 hour, the worst-case exposure after a missed back-channel event is bounded to ≤60 minutes; a reconciliation job running every 5 minutes against ~500,000 active sessions needs to check roughly 1,700 sessions/sec to stay within one TTL window."
         },
         {
           "workflow": "Client onboarding & registry governance",
-          "problem": "With a single central identity domain handling 100% of authorization and token traffic, a regional outage blocks all new logins and token refreshes platform-wide, even though the NFRs explicitly require already-established site sessions to keep working \u2014 the design hasn't yet specified what 'degraded mode' concretely means for in-flight sessions, cached keys, and new logins.",
+          "problem": "With a single central identity domain handling 100% of authorization and token traffic, a regional outage blocks all new logins and token refreshes platform-wide, even though the NFRs explicitly require already-established site sessions to keep working — the design hasn't yet specified what 'degraded mode' concretely means for in-flight sessions, cached keys, and new logins.",
           "tech_decision": {
             "decision_title": "Fail-open local sessions vs. an explicit fail-closed-for-new-trust, fail-open-for-existing-trust degraded-mode policy",
-            "chosen": "Existing SiteSessions and cached JWKS remain valid until natural expiry during an IdP outage, but new authorization requests are blocked or queued until the IdP recovers \u2014 never silently fail open to an unauthenticated or unauthorized state.",
+            "chosen": "Existing SiteSessions and cached JWKS remain valid until natural expiry during an IdP outage, but new authorization requests are blocked or queued until the IdP recovers — never silently fail open to an unauthenticated or unauthorized state.",
             "why_not": "Either naive fail-open (treat any IdP-unreachable condition as implicitly valid) or naive fail-closed (force-expire all sessions immediately on any IdP blip).",
             "why": [
               "Preserves the 99.99% availability NFR for users who are already logged in.",
@@ -3910,7 +3910,7 @@
             ],
             "tradeoff": "During an extended outage, no new user can log in or step up privilege even though existing low-risk sessions keep working, which can feel inconsistent to support teams and end users."
           },
-          "math": "At 99.99% availability the IdP's annual downtime budget is ~52 minutes; if roughly 90% of traffic is served by already-established sessions, a full 50-minute regional outage would only visibly impact the ~10% of traffic that is new logins or token refreshes \u2014 roughly 200,000 of an estimated 2,000,000 daily token operations."
+          "math": "At 99.99% availability the IdP's annual downtime budget is ~52 minutes; if roughly 90% of traffic is served by already-established sessions, a full 50-minute regional outage would only visibly impact the ~10% of traffic that is new logins or token refreshes — roughly 200,000 of an estimated 2,000,000 daily token operations."
         }
       ],
       "implementation_plan": [
@@ -3935,7 +3935,7 @@
       "level_expectations": {
         "mid_level": "Recognizes OIDC authorization code flow, uses a central identity provider plus per-site local sessions, validates tokens and exact redirects, distinguishes authentication from site authorization, and identifies cookie, CSRF, logout, and availability risks.",
         "senior": "Rejects shared-cookie shortcuts, designs separate client and audience boundaries, handles PKCE, state, nonce, key rollover, account and organization context, partial global logout, browser privacy restrictions, revocation propagation, entitlement freshness, client governance, migration, and degraded-mode behavior.",
-        "staff": "~40/60 breadth/depth. A staff-level answer moves quickly past the standard OIDC redirect mechanics and spends most of its time on the experience-backed tradeoffs: why a shared parent-domain cookie is an attractive but unsafe shortcut, why front-channel-only logout quietly fails under realistic browser conditions and needs a back-channel-plus-reconciliation layer, how to design signing-key rollover so it never becomes a simultaneous mass-outage event, and what an honest, explicit degraded-mode policy looks like when the central identity domain itself is unavailable \u2014 rather than hand-waving 'the IdP needs to be highly available.'"
+        "staff": "~40/60 breadth/depth. A staff-level answer moves quickly past the standard OIDC redirect mechanics and spends most of its time on the experience-backed tradeoffs: why a shared parent-domain cookie is an attractive but unsafe shortcut, why front-channel-only logout quietly fails under realistic browser conditions and needs a back-channel-plus-reconciliation layer, how to design signing-key rollover so it never becomes a simultaneous mass-outage event, and what an honest, explicit degraded-mode policy looks like when the central identity domain itself is unavailable — rather than hand-waving 'the IdP needs to be highly available.'"
       },
       "provenance_note": "The source_backed_facts below are limited to Microsoft's official OpenID Connect reference. The named Stripe-facing site examples, central and local session model, client registry workflow, entitlement design, back-channel event API, SLOs, and migration plan are adapted or proposed interview material; they do not describe Stripe's production systems.",
       "source_backed_facts": [
@@ -3966,7 +3966,7 @@
         "Native mobile biometric unlock and deep-link app-to-app handoff beyond the web OIDC authorization-code flow.",
         "Consumer self-service account recovery and fraud/risk-scoring internals."
       ],
-      "planning_approach": "The hardest part isn't the happy-path login redirect \u2014 it's making cross-site trust and revocation hold up under failure: a compromised site, a blocked third-party cookie, a mid-flight signing-key rotation, or a user who hits global logout and expects every site to honor it quickly even though browser delivery is best-effort. Tackle workflows in dependency order: first get a single site's OIDC login and local-session creation correct (workflow 1), since every other workflow depends on a working authorization/token exchange; then harden token issuance, validation, and audience isolation (workflow 2); then build global logout and revocation propagation on top of that session model (workflow 3); and only then formalize self-service client onboarding and governance (workflow 4), since onboarding automation is meaningless until the trust boundaries it enforces actually exist.",
+      "planning_approach": "The hardest part isn't the happy-path login redirect — it's making cross-site trust and revocation hold up under failure: a compromised site, a blocked third-party cookie, a mid-flight signing-key rotation, or a user who hits global logout and expects every site to honor it quickly even though browser delivery is best-effort. Tackle workflows in dependency order: first get a single site's OIDC login and local-session creation correct (workflow 1), since every other workflow depends on a working authorization/token exchange; then harden token issuance, validation, and audience isolation (workflow 2); then build global logout and revocation propagation on top of that session model (workflow 3); and only then formalize self-service client onboarding and governance (workflow 4), since onboarding automation is meaningless until the trust boundaries it enforces actually exist.",
       "capacity_estimation": [
         {
           "metric": "Relying sites / registered OIDC clients",
@@ -3981,7 +3981,7 @@
         {
           "metric": "Authorization-code transactions/day (new SSO hops)",
           "estimate": "~6,000,000/day (avg ~70 QPS, peak ~700 QPS)",
-          "derivation": "Assume each DAU touches ~3 distinct sites/day; 2M DAU x 3 / 86,400s \u2248 70 QPS average, 10x at peak."
+          "derivation": "Assume each DAU touches ~3 distinct sites/day; 2M DAU x 3 / 86,400s ≈ 70 QPS average, 10x at peak."
         },
         {
           "metric": "Token exchange (POST /token) rate",
@@ -3996,7 +3996,7 @@
         {
           "metric": "AuthorizationTransaction working-set size",
           "estimate": "~20 MB resident at any instant",
-          "derivation": "6M transactions/day x (600s TTL / 86,400s/day) \u2248 41,600 concurrent transactions x ~500 bytes each."
+          "derivation": "6M transactions/day x (600s TTL / 86,400s/day) ≈ 41,600 concurrent transactions x ~500 bytes each."
         },
         {
           "metric": "RevocationEvent storage growth",
@@ -4075,7 +4075,7 @@
               "chosen": "Combine best-effort front-channel callbacks with durable, retried, deduplicated signed back-channel revocation events plus periodic reconciliation.",
               "why_not": "Relying on front-channel browser callbacks alone to propagate logout.",
               "why": [
-                "Browser delivery is not guaranteed \u2014 closed tabs, blocked iframes, or an offline site all defeat front-channel-only logout.",
+                "Browser delivery is not guaranteed — closed tabs, blocked iframes, or an offline site all defeat front-channel-only logout.",
                 "Back-channel events add retries, deduplication, and an audit trail, and work even when the user isn't present.",
                 "Reconciliation catches any site that missed both delivery paths."
               ],
@@ -4300,7 +4300,7 @@
             ],
             "tradeoff": "Requires building and maintaining SLA tracking, alerting thresholds, and a user-facing pending-state UI rather than treating the outbox as pure fire-and-forget."
           },
-          "math": "At an estimated 5,000 meetups published/day with a typical provider round trip of ~300ms, the steady-state outbox backlog is only a few seconds of queued work, but a 10-minute provider outage would accumulate roughly 35 unsynced meetups (5,000/day \u00f7 1,440 min/day x 10 min) needing replay once the provider recovers."
+          "math": "At an estimated 5,000 meetups published/day with a typical provider round trip of ~300ms, the steady-state outbox backlog is only a few seconds of queued work, but a 10-minute provider outage would accumulate roughly 35 unsynced meetups (5,000/day ÷ 1,440 min/day x 10 min) needing replay once the provider recovers."
         },
         {
           "workflow": "RSVP, capacity & waitlist",
@@ -4332,7 +4332,7 @@
             ],
             "tradeoff": "More provider API calls (since detail isn't cached) and more operational work to manage scoped, rotated credentials per provider and tenant."
           },
-          "math": "At an estimated 25,000 employees with ~30% opting into calendar-based scheduling, storing only a normalized free/busy outcome (~50 bytes/window) instead of full event bodies (~2KB/event) for ~10 scheduling checks/user/month saves roughly (2KB-50B) x 75,000 checks/month \u2248 146MB/month of unnecessary sensitive data that would otherwise need encryption, retention, and breach-notification handling."
+          "math": "At an estimated 25,000 employees with ~30% opting into calendar-based scheduling, storing only a normalized free/busy outcome (~50 bytes/window) instead of full event bodies (~2KB/event) for ~10 scheduling checks/user/month saves roughly (2KB-50B) x 75,000 checks/month ≈ 146MB/month of unnecessary sensitive data that would otherwise need encryption, retention, and breach-notification handling."
         }
       ],
       "implementation_plan": [
@@ -4357,7 +4357,7 @@
       "level_expectations": {
         "mid_level": "Clarifies the core users and MVP, models groups, meetups, RSVPs, and waitlists, proposes reasonable APIs and storage, explains asynchronous notifications, and covers authentication, retries, and basic scaling. A strong mid-level answer traces one publish and RSVP flow end to end and catches the last-seat race.",
         "senior": "Defines consistency boundaries and invariants, uses outbox/idempotency/reconciliation deliberately, handles calendar ownership, subscription expiry, recurrence and time-zone edge cases, separates tenant authorization from search ranking, minimizes sensitive data, and ties rollout and observability to explicit product and reliability goals.",
-        "staff": "~40/60 breadth/depth. A staff-level answer moves quickly past basic CRUD-for-events modeling and spends most of its time on the nuanced tradeoffs: drawing the exact consistency boundary that stops a last-seat race without over-serializing the 99% of normal-sized meetups, treating every calendar/chat webhook as a hint rather than ground truth while still giving organizers a trustworthy publish experience, and minimizing calendar/chat scope and retention so a single leaked integration credential can't expose private employee data \u2014 not just getting RSVPs and notifications working on the happy path."
+        "staff": "~40/60 breadth/depth. A staff-level answer moves quickly past basic CRUD-for-events modeling and spends most of its time on the nuanced tradeoffs: drawing the exact consistency boundary that stops a last-seat race without over-serializing the 99% of normal-sized meetups, treating every calendar/chat webhook as a hint rather than ground truth while still giving organizers a trustworthy publish experience, and minimizing calendar/chat scope and retention so a single leaked integration credential can't expose private employee data — not just getting RSVPs and notifications working on the happy path."
       },
       "provenance_note": "The interview prompt and Palantir attribution come from the published Aced question. The statements in source_backed_facts are limited to capabilities explicitly documented by Microsoft Graph, Google Calendar, and Slack. The company size, product scope, service boundaries, SLO targets, data model, algorithms, policies, and rollout are proposed adaptations for a complete interview case; they are not claims about Palantir's internal systems.",
       "source_backed_facts": [
@@ -4384,12 +4384,12 @@
       },
       "what_is_it": "An internal, SSO-protected platform where employees discover hobby/interest groups, organizers schedule one-time or recurring meetups against real calendar availability, invitees RSVP with capacity/waitlist enforcement, and published events sync to corporate calendar and chat tools without becoming a general social network.",
       "out_of_scope": [
-        "Building a new corporate identity or calendar provider \u2014 the design integrates with existing SSO and one calendar/chat ecosystem rather than replacing them.",
+        "Building a new corporate identity or calendar provider — the design integrates with existing SSO and one calendar/chat ecosystem rather than replacing them.",
         "General-purpose social networking features (feeds, DMs, public profiles) beyond what's needed for group and event coordination.",
         "Physical room-hardware integration (badge readers, AV booking systems) beyond a basic room-reservation record.",
         "Company-wide personalized recommendations at launch (explicit topic/office/time filters only; personalization is a later addition)."
       ],
-      "planning_approach": "The hardest part is that this system straddles two different consistency regimes at once: a hard transactional invariant (nobody double-books the last seat) and an inherently eventually-consistent integration surface (calendar/chat providers that throttle, retry, and deliver hint-only webhooks) \u2014 conflating the two is the most common design mistake. Tackle discovery first (workflow 1) since it's the lowest-risk, read-heavy entry point; then creation and publish with privacy-preserving scheduling (workflow 2), which establishes the outbox pattern everything downstream depends on; then RSVP/capacity/waitlist (workflow 3), the system's one hard transactional invariant; and finally calendar/chat sync and reconciliation (workflow 4), which consumes the outbox built in workflow 2 and must treat every external signal as a hint rather than ground truth.",
+      "planning_approach": "The hardest part is that this system straddles two different consistency regimes at once: a hard transactional invariant (nobody double-books the last seat) and an inherently eventually-consistent integration surface (calendar/chat providers that throttle, retry, and deliver hint-only webhooks) — conflating the two is the most common design mistake. Tackle discovery first (workflow 1) since it's the lowest-risk, read-heavy entry point; then creation and publish with privacy-preserving scheduling (workflow 2), which establishes the outbox pattern everything downstream depends on; then RSVP/capacity/waitlist (workflow 3), the system's one hard transactional invariant; and finally calendar/chat sync and reconciliation (workflow 4), which consumes the outbox built in workflow 2 and must treat every external signal as a hint rather than ground truth.",
       "capacity_estimation": [
         {
           "metric": "Company size / daily active users",
@@ -4409,12 +4409,12 @@
         {
           "metric": "RSVP writes",
           "estimate": "avg ~0.9/sec, peak ~167/sec for a hot occurrence",
-          "derivation": "5,000 occurrences/day x ~15 avg RSVPs \u2248 75,000 RSVPs/day (0.87/sec avg); a flash company-wide event filling 10,000 seats in the first 60 seconds needs ~167 writes/sec."
+          "derivation": "5,000 occurrences/day x ~15 avg RSVPs ≈ 75,000 RSVPs/day (0.87/sec avg); a flash company-wide event filling 10,000 seats in the first 60 seconds needs ~167 writes/sec."
         },
         {
           "metric": "Discovery/search reads",
           "estimate": "avg ~14 QPS, peak ~140 QPS",
-          "derivation": "25,000 employees x ~50 searches/employee/day \u2248 1.25M/day \u2248 14 QPS average, 10x at peak."
+          "derivation": "25,000 employees x ~50 searches/employee/day ≈ 1.25M/day ≈ 14 QPS average, 10x at peak."
         },
         {
           "metric": "Read:write ratio (discovery reads : RSVP+publish writes)",
@@ -4424,7 +4424,7 @@
         {
           "metric": "Storage growth",
           "estimate": "~20 MB/day, ~7.3 GB/year",
-          "derivation": "5,000 occurrences/day x ~1KB + 75,000 RSVPs/day x ~200 bytes \u2248 20MB/day, comfortably fitting a relational store over a year."
+          "derivation": "5,000 occurrences/day x ~1KB + 75,000 RSVPs/day x ~200 bytes ≈ 20MB/day, comfortably fitting a relational store over a year."
         },
         {
           "metric": "Peak bandwidth at the discovery API",
@@ -4454,7 +4454,7 @@
               "tradeoff": "The index lags canonical state (eventually consistent), requiring careful handling of visibility changes and deletions plus a re-authorization check at read time."
             }
           ],
-          "known_issue": "The search index is eventually consistent with the canonical relational store; a group whose visibility was just changed to private, or a user who was just removed from a group, can still appear in \u2014 or be wrongly excluded from \u2014 search results for a window after the change, risking either a privacy leak or confusing stale results."
+          "known_issue": "The search index is eventually consistent with the canonical relational store; a group whose visibility was just changed to private, or a user who was just removed from a group, can still appear in — or be wrongly excluded from — search results for a window after the change, risking either a privacy leak or confusing stale results."
         },
         {
           "name": "Create & publish a meetup (privacy-preserving scheduling)",
@@ -4728,7 +4728,7 @@
             ],
             "tradeoff": "During a genuine burst, some runs' status updates and dispositions are deliberately delayed (backpressure) rather than all runs getting real-time status, slowing the human-visible completion-time target."
           },
-          "math": "At a conservative poll cadence of one GET /sessions/{id} call every 15 seconds per in-flight run, 500 concurrent runs during a burst would generate ~33 polling requests/sec plus verification calls to source control; capping global concurrency at 100 simultaneous polls keeps sustained load at \u22647 requests/sec, comfortably under typical per-minute provider rate-limit tiers."
+          "math": "At a conservative poll cadence of one GET /sessions/{id} call every 15 seconds per in-flight run, 500 concurrent runs during a burst would generate ~33 polling requests/sec plus verification calls to source control; capping global concurrency at 100 simultaneous polls keeps sustained load at ≤7 requests/sec, comfortably under typical per-minute provider rate-limit tiers."
         },
         {
           "workflow": "Report back to the ticket & operator recovery",
@@ -4769,7 +4769,7 @@
       "level_expectations": {
         "mid_level": "Chooses a concrete trigger and workflow, verifies webhooks, queues work, calls the documented session API, tracks status, retries safely, stores correlation IDs, and avoids putting secrets in code. A strong mid-level answer includes idempotent ticket comments and a human-review boundary.",
         "senior": "Separates the deterministic control plane from the agent, models ambiguous session-creation failures and business state explicitly, uses least-privilege service users and bounded session authority, treats ticket content as prompt-injection input, independently verifies repository outcomes, enforces spend and concurrency backpressure, and never claims undocumented Devin delivery or completion guarantees.",
-        "staff": "~40/60 breadth/depth. A staff-level answer moves quickly past 'call the webhook, call the API, poll for status' and spends most of its time on the experience-backed tradeoffs: why blindly retrying an ambiguous Devin API failure is a real duplicate-session risk given no provider idempotency key, why the agent's own structured output must always be independently re-verified against source-control truth rather than trusted, how shared rate limits during a webhook burst become a system-wide backpressure problem rather than a per-run concern, and how to draw a typed trust boundary around untrusted ticket text so prompt injection can only ever produce a flagged, human-reviewed PR \u2014 never a credential or production leak."
+        "staff": "~40/60 breadth/depth. A staff-level answer moves quickly past 'call the webhook, call the API, poll for status' and spends most of its time on the experience-backed tradeoffs: why blindly retrying an ambiguous Devin API failure is a real duplicate-session risk given no provider idempotency key, why the agent's own structured output must always be independently re-verified against source-control truth rather than trusted, how shared rate limits during a webhook burst become a system-wide backpressure problem rather than a per-run concern, and how to draw a typed trust boundary around untrusted ticket text so prompt injection can only ever produce a flagged, human-reviewed PR — never a credential or production leak."
       },
       "provenance_note": "The interview prompt and Cognition AI attribution come from the published Aced question. Devin endpoint paths, permission names, authentication model, documented status fields, pagination, polling examples, and request capabilities in source_backed_facts come from official Devin documentation. Azure delivery statements come from Microsoft Learn. The ticket-label workflow, Azure topology, SLOs, state machine, policy model, prompts, metrics, and no-auto-merge boundary are proposed adaptations, not Devin product guarantees. In particular, this design deliberately polls the documented Get Session API and does not assert that Devin emits a session-completion webhook.",
       "source_backed_facts": [
@@ -4797,11 +4797,11 @@
         "canonical_url": "https://docs.devin.ai/use-cases/gallery/api-webhook-custom-ticketing",
         "note": "Official Devin use-case guide demonstrating a webhook handler that creates a session for a custom ticketing system. The case adds an Azure reliability and governance control plane around that pattern."
       },
-      "what_is_it": "A governed automation control plane that watches for a devin-ready label on engineering tickets, creates a scoped Devin agent session through the official v3 API to investigate and fix the issue, and reports verified results back to the ticket \u2014 without ever merging, deploying, or trusting the agent's own claims of success.",
+      "what_is_it": "A governed automation control plane that watches for a devin-ready label on engineering tickets, creates a scoped Devin agent session through the official v3 API to investigate and fix the issue, and reports verified results back to the ticket — without ever merging, deploying, or trusting the agent's own claims of success.",
       "out_of_scope": [
-        "Building or modifying the Devin agent itself \u2014 treated as an external, already-documented API.",
+        "Building or modifying the Devin agent itself — treated as an external, already-documented API.",
         "Automatic merge, deployment, or production infrastructure changes of any kind.",
-        "General-purpose ticket triage/routing for all ticket types \u2014 only explicitly labeled, allowlisted, well-specified bug tickets are in scope.",
+        "General-purpose ticket triage/routing for all ticket types — only explicitly labeled, allowlisted, well-specified bug tickets are in scope.",
         "A custom human-approval UI beyond posting ticket comments and supporting operator cancel/retry actions."
       ],
       "planning_approach": "The hardest part is that this is fundamentally a trust-and-verification problem, not an integration problem: webhook delivery is at-least-once, Devin's v3 session API offers no customer-supplied idempotency key, and the agent's own structured output is a claim, not ground truth, so every stage needs its own idempotency and verification logic rather than inheriting guarantees from any single component. Build workflows in dependency order: first the durable, deduplicated ingress (workflow 1), since nothing downstream can be correct if duplicate events aren't controlled at the source; then policy-gated, idempotent session creation (workflow 2); then monitoring and independent outcome verification (workflow 3), which is where most of the design's safety guarantees actually live; and finally reporting and operator recovery (workflow 4), which depends on all three prior stages producing trustworthy state.",
@@ -4829,7 +4829,7 @@
         {
           "metric": "Status-poll rate at peak",
           "estimate": "~33 requests/sec",
-          "derivation": "500 concurrent in-flight runs x one GET /sessions/{id} every ~15s \u2248 33 req/sec during a burst."
+          "derivation": "500 concurrent in-flight runs x one GET /sessions/{id} every ~15s ≈ 33 req/sec during a burst."
         },
         {
           "metric": "Read:write ratio (status polls + verification reads : webhook/session-creation writes)",
@@ -4844,7 +4844,7 @@
         {
           "metric": "Storage growth",
           "estimate": "~10 MB/day, ~3.65 GB/year",
-          "derivation": "2,000 runs/day x ~5KB/run \u2248 10MB/day."
+          "derivation": "2,000 runs/day x ~5KB/run ≈ 10MB/day."
         }
       ],
       "workflows": [
@@ -4903,7 +4903,7 @@
             "Documented status/status_detail values (working, waiting, exit, error, suspended) are mapped into internal business states; waiting-for-user/approval notifies an authorized maintainer.",
             "On a candidate completion, the result worker parses and validates structured output against the expected schema.",
             "The result worker independently queries the source-control API to confirm repository, branch, commit head SHA, pull request, and CI checks actually exist and match.",
-            "Only artifacts verified against source control \u2014 not the agent's prose claim \u2014 advance the run to Verifying and then Reporting/Succeeded."
+            "Only artifacts verified against source control — not the agent's prose claim — advance the run to Verifying and then Reporting/Succeeded."
           ],
           "tech_decisions": [
             {
@@ -4945,7 +4945,398 @@
           "known_issue": null
         }
       ],
-      "final_design_summary": "Together, a durable deduplicated ingress (workflow 1), quarantine-and-reconcile idempotent session creation (workflow 2), backpressure-gated monitoring with independent source-control verification (workflow 3), and idempotent, human-gated reporting with full audit trails (workflow 4) \u2014 all operating inside a typed trust boundary that treats ticket text as untrusted and the agent's own claims as unverified \u2014 deliver a safe, observable automation that can only ever recommend verified work for human merge, never perform it unilaterally."
+      "final_design_summary": "Together, a durable deduplicated ingress (workflow 1), quarantine-and-reconcile idempotent session creation (workflow 2), backpressure-gated monitoring with independent source-control verification (workflow 3), and idempotent, human-gated reporting with full audit trails (workflow 4) — all operating inside a typed trust boundary that treats ticket text as untrusted and the agent's own claims as unverified — deliver a safe, observable automation that can only ever recommend verified work for human merge, never perform it unilaterally."
+    },
+    {
+      "case_id": "fde-azure-webapp-01",
+      "title": "Design an Azure cloud infrastructure to host a web application serving 100,000 users.",
+      "difficulty": "Medium",
+      "category": "Cloud infrastructure and web application hosting",
+      "source_question": {
+        "title": "Design an Azure cloud infrastructure to host a web application serving 100,000 users.",
+        "url": "https://www.aced.io/questions/8588/design-azure-cloud-infrastructure-web-app",
+        "companies": [
+          "Microsoft"
+        ]
+      },
+      "customer_scenario": "A B2C retailer is replatforming a monolithic web application onto Azure ahead of a national marketing push expected to bring the active user base to roughly 100,000. Traffic is strongly diurnal with sharp promotional spikes, customers expect sub-second page loads from multiple regions, and the business wants a managed, auditable platform with a clear path to blue/green releases and regional failover rather than a single always-on fleet of hand-patched VMs.",
+      "discovery_questions": [
+        "Is 100,000 total registered users, daily active users, or concurrent users, and what is the expected peak-to-average request ratio?",
+        "Does the application need multi-region active-active serving, or is a warm standby region with manual failover acceptable?",
+        "Is user session state required to be sticky to one instance, or can sessions be stored externally so any instance can serve any request?",
+        "What are the read/write ratios and consistency requirements for product catalog, cart, and order data?",
+        "What compliance, data-residency, or PCI requirements apply to customer and payment data?",
+        "What deployment cadence and rollback expectations does the team have (e.g., blue/green, canary, nightly releases)?",
+        "What is the target availability SLA, and what budget constraints rule out certain redundancy options?",
+        "Are there existing on-premises systems (ERP, inventory) that the web app must integrate with synchronously?"
+      ],
+      "functional_requirements": [
+        "Serve authenticated and anonymous web traffic for browsing, cart, checkout, and account management.",
+        "Scale compute capacity automatically with demand and shed load gracefully during unexpected spikes.",
+        "Serve static assets (images, CSS, JS) with low latency to users across multiple geographic regions.",
+        "Persist transactional data (orders, inventory counts) with strong consistency and session/cache data with low latency.",
+        "Support zero-downtime deployments with the ability to roll back a bad release within minutes.",
+        "Provide centralized authentication, authorization, and audit logging for customer and administrative actions."
+      ],
+      "non_functional_requirements": [
+        "Sustain at least 100,000 active users with peak concurrent request rates several times the daily average without manual intervention.",
+        "Serve p95 page-load-relevant API responses in under 300 ms from the nearest region.",
+        "Provide at least 99.9% monthly availability for the public web tier, with graceful degradation instead of hard outages during a single-region failure.",
+        "Encrypt data in transit and at rest, isolate the database tier from direct internet access, and centralize secrets in a managed vault.",
+        "Keep infrastructure cost roughly proportional to actual load through autoscaling rather than permanently over-provisioned capacity.",
+        "Support repeatable, auditable infrastructure changes through infrastructure-as-code rather than manual portal configuration."
+      ],
+      "core_entities": [
+        {
+          "name": "User",
+          "purpose": "Represents a registered or guest customer, their authentication identity, and profile data."
+        },
+        {
+          "name": "Session",
+          "purpose": "Tracks a user's authenticated state and cart contents independent of which app instance handles the request."
+        },
+        {
+          "name": "Product",
+          "purpose": "Represents catalog items, pricing, and inventory counts read heavily by browsing traffic."
+        },
+        {
+          "name": "Order",
+          "purpose": "Captures a completed or in-progress checkout with line items, payment status, and fulfillment state."
+        },
+        {
+          "name": "DeploymentSlot",
+          "purpose": "Represents a staging or production application version used for blue/green releases and instant rollback."
+        },
+        {
+          "name": "AuditEvent",
+          "purpose": "Immutable record of security-relevant actions such as logins, admin changes, and payment attempts."
+        }
+      ],
+      "api_interface": [
+        {
+          "method": "GET",
+          "path": "/api/catalog/products?category={id}",
+          "purpose": "Return paginated product listings served primarily from cache for browsing traffic."
+        },
+        {
+          "method": "GET",
+          "path": "/api/catalog/products/{productId}",
+          "purpose": "Return full product detail including current price and stock status."
+        },
+        {
+          "method": "POST",
+          "path": "/api/cart/{sessionId}/items",
+          "purpose": "Add or update an item in a user's externally stored cart/session."
+        },
+        {
+          "method": "POST",
+          "path": "/api/checkout/{sessionId}",
+          "purpose": "Validate cart, reserve inventory, and create an Order in a pending state."
+        },
+        {
+          "method": "GET",
+          "path": "/api/orders/{orderId}",
+          "purpose": "Return order status for the authenticated owner of the order."
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/login",
+          "purpose": "Authenticate a user and issue a token validated by the app tier on subsequent requests."
+        }
+      ],
+      "tradeoffs": [
+        "Multi-region active-active serving minimizes latency and gives true regional failover, but roughly doubles infrastructure cost and requires solving cross-region data replication and conflict handling; a single-region deployment with zone redundancy is far cheaper but exposed to a regional outage.",
+        "Storing session state externally (e.g., a managed cache) adds a network hop per request compared to in-memory sticky sessions, but lets any instance serve any request, which is required for clean autoscaling and rolling deployments.",
+        "A managed PaaS web tier (App Service) trades some low-level OS control for built-in autoscaling, patching, and deployment slots; self-managed VMs give more control but push patching, scaling, and slot-style deployment automation back onto the team.",
+        "Aggressive CDN caching of static and semi-static content reduces origin load and latency dramatically, but requires careful cache-invalidation design so price or stock changes are not served stale for too long.",
+        "A single shared database simplifies consistency for orders and inventory but can become a scaling bottleneck under peak load; read replicas and caching relieve read pressure but add eventual-consistency considerations for browsing data.",
+        "Blue/green deployment slots cost extra idle capacity for the staging slot, but they make releases close to zero-downtime and trivially reversible compared to in-place rolling updates on the same fleet."
+      ],
+      "failure_security_challenges": [
+        "A promotional traffic spike well beyond provisioned autoscale limits can exhaust the web tier; set autoscale rules on both CPU/queue-length and a sane maximum instance count, and front the tier with a CDN and caching layer to absorb read-heavy bursts before they reach compute.",
+        "A single-region outage can take the whole site down; use availability zones within the region as a baseline and design the data tier (and DNS/traffic routing) so a second region can be brought online or already serves a share of traffic.",
+        "Storing session/cart state only in-process ties a user to one instance, breaking autoscaling and rolling deployments; externalize session state to a managed cache so any instance can serve any request.",
+        "A compromised web tier should not have direct access to the database network; place the data tier in a private subnet reachable only from the app tier, and use managed identities instead of embedded credentials.",
+        "Secrets (connection strings, API keys) checked into app settings or source control are a common breach vector; centralize them in a managed secrets store and inject them at runtime via managed identity.",
+        "A bad deployment can take the whole fleet down simultaneously; use a staging deployment slot with automated smoke tests and swap-based rollout so a bad release can be reverted by swapping slots back.",
+        "Unbounded database connections from a scaled-out app tier can exhaust the database's connection limit under load; use connection pooling at the data-access layer and read replicas to spread read traffic."
+      ],
+      "deep_dives": [
+        {
+          "workflow": "Serve web and API traffic",
+          "problem": "A flash promotion can drive request volume to several times the normal peak within minutes, far faster than a cold compute fleet can scale out, risking timeouts or 5xx errors for a large share of users right when traffic matters most.",
+          "tech_decision": {
+            "decision_title": "CDN + autoscaled PaaS web tier vs. fixed-size VM fleet behind a load balancer",
+            "chosen": "Front the app with a global CDN caching static assets and cacheable API responses, and run the app tier on an autoscaling PaaS compute service with rules based on both CPU and request queue length, pre-warmed to a higher minimum instance count ahead of known promotions.",
+            "why_not": "A fixed-size VM fleet sized for peak is simple to reason about but wastes money most of the day, and sizing for 'normal peak' still fails during unplanned spikes; manual scale-up during an incident is too slow to help during the first minutes of a spike.",
+            "why": [
+              "Offloading cacheable traffic to the CDN removes a large share of requests from the compute tier entirely, so the remaining origin traffic is both smaller and smoother.",
+              "Autoscaling on queue length (not just CPU) reacts to request backlog before CPU saturates, scaling out earlier in a spike.",
+              "A pre-warmed minimum instance count ahead of a known promotion avoids the cold-start scaling lag for the first, sharpest minutes of traffic."
+            ],
+            "tradeoff": "Pre-warming capacity ahead of a promotion costs idle compute for a window of time, and CDN cache misses during a price or stock change still hit the origin, so cache invalidation logic must stay correct under load."
+          },
+          "math": "At 100,000 active users with a 5x promotional peak multiplier over a normal daily peak of 2,000 requests/sec, peak load reaches ~10,000 requests/sec; if each app instance comfortably sustains ~500 requests/sec, the tier needs roughly 20 instances at peak versus ~4 at normal daily peak — autoscaling on queue length lets the fleet reach that 20-instance level within one or two scale-out cycles instead of waiting on a slower CPU-only signal."
+        },
+        {
+          "workflow": "Manage sessions and cart state",
+          "problem": "If session and cart data live only in an instance's local memory, autoscaling in new instances or rolling out a deployment silently drops or fragments a user's cart mid-session, and a user can be routed to a different instance on their very next request.",
+          "tech_decision": {
+            "decision_title": "Externalized distributed cache for session/cart state vs. sticky sessions on the load balancer",
+            "chosen": "Store session and cart state in a managed, low-latency distributed cache keyed by session ID, so any app instance can read and update it for any request.",
+            "why_not": "Sticky sessions (routing a user's requests to the same instance) avoid the extra cache hop but reintroduce a single point of failure per user, complicate autoscaling and deployments, and still lose session data entirely if that specific instance is recycled.",
+            "why": [
+              "Any instance can serve any request, which is a prerequisite for clean, fast autoscaling and zero-downtime rolling deployments.",
+              "A managed distributed cache keeps read/write latency low (sub-millisecond to low-millisecond) compared to a full database round trip.",
+              "Centralizing session state also centralizes expiry and eviction policy instead of relying on per-instance process lifetime."
+            ],
+            "tradeoff": "Every session read/write now costs a network hop to the cache tier, and the cache itself becomes a dependency whose availability directly affects checkout and browsing experience."
+          },
+          "math": "At 100,000 active users averaging roughly 3 session reads/writes per page interaction and 2,000 requests/sec at normal peak, the cache tier sees on the order of several thousand operations/sec — well within a managed cache's single-digit-millisecond latency budget, which keeps the externalized-session overhead a small fraction of the 300ms p95 API target."
+        },
+        {
+          "workflow": "Persist orders and inventory",
+          "problem": "Checkout writes (reserve inventory, create an order) need strong consistency to avoid overselling, while product-browsing reads are far higher volume and can tolerate slightly stale data — serving both from one unscaled primary database risks either slow checkouts or starved browsing traffic during peak.",
+          "tech_decision": {
+            "decision_title": "Primary database with read replicas and cache-aside catalog reads vs. a single scaled-up primary for everything",
+            "chosen": "Use a managed relational database with zone-redundant high availability for orders/inventory writes and a small number of strongly-consistent reads, paired with a cache-aside layer (and/or read replicas) in front of product-catalog reads.",
+            "why_not": "Scaling a single primary instance up (bigger SKU) handles more total load but eventually hits a ceiling, and it does not separate the latency-sensitive, consistency-critical checkout path from the much higher-volume, more latency-tolerant browsing path.",
+            "why": [
+              "Caching catalog reads removes the majority of request volume from the primary database, leaving its capacity for checkout-critical writes.",
+              "Zone-redundant high availability on the primary protects order and inventory consistency against a single datacenter failure without a full active-active multi-primary design.",
+              "Keeping inventory reservation on the strongly consistent primary avoids overselling, which a purely cached or eventually consistent path cannot guarantee."
+            ],
+            "tradeoff": "Cached catalog data can be briefly stale after a price or stock change, requiring an explicit, bounded cache-invalidation strategy, and read replicas add replication lag that must be accounted for in any read that needs near-real-time accuracy."
+          },
+          "math": "If browsing reads outnumber checkout writes roughly 20:1 at a 10,000 requests/sec promotional peak, that is ~9,500 reads/sec versus ~500 writes/sec; offloading ~90% of those reads to cache leaves the primary handling under 1,500 requests/sec combined, comfortably inside a mid-tier managed database SKU's throughput envelope instead of the full 10,000/sec."
+        },
+        {
+          "workflow": "Deploy and release safely",
+          "problem": "Rolling a new app version across every running instance at once risks exposing all 100,000 users to a bad deployment simultaneously, and a failed in-place rollout can be slow and risky to reverse mid-incident.",
+          "tech_decision": {
+            "decision_title": "Staging deployment slot with swap-based release vs. in-place rolling update across the live fleet",
+            "chosen": "Deploy new versions to a staging slot that mirrors production configuration, run automated smoke tests against it, then swap staging and production traffic atomically; keep the previous version warm in the (now) staging slot for immediate rollback.",
+            "why_not": "In-place rolling updates avoid the cost of a second warm slot, but they expose a mix of old and new code to live traffic during the rollout and make 'instant' rollback harder since the previous version's instances have already been replaced.",
+            "why": [
+              "A slot swap is close to instantaneous and atomic from the traffic-routing perspective, minimizing the window where behavior is inconsistent across instances.",
+              "Automated smoke tests against the staging slot catch configuration or dependency issues before any production traffic sees the new version.",
+              "Keeping the prior version warm in the swapped-out slot makes rollback a second swap rather than a redeploy."
+            ],
+            "tradeoff": "Running a staging slot at production-like capacity means paying for roughly double the compute during the deployment window, and database schema changes still need backward-compatible migration discipline since both slots can briefly point at the same database."
+          },
+          "math": "At 20 instances running at peak and a staging slot provisioned to match, a deployment window briefly doubles compute cost for that tier; if deployments happen a few times per week for under an hour each, that added cost is a small fraction (well under 1%) of total monthly compute spend, in exchange for near-zero-downtime releases and fast rollback."
+        }
+      ],
+      "implementation_plan": [
+        {
+          "step": 1,
+          "action": "Stand up a single-region thin slice: PaaS web/app tier with autoscaling, a managed relational database, externalized session cache, and basic health probes."
+        },
+        {
+          "step": 2,
+          "action": "Add a CDN in front of static assets and cacheable API responses, cache-aside reads for the product catalog, and a staging deployment slot with swap-based releases."
+        },
+        {
+          "step": 3,
+          "action": "Add zone-redundant high availability for the database, managed identities and a secrets vault for the app tier, and private networking between the app and data tiers."
+        },
+        {
+          "step": 4,
+          "action": "Introduce a second region (warm standby or active-active), global traffic routing with health-based failover, and load/chaos testing of the full failover path."
+        }
+      ],
+      "spoken_answer_60_seconds": "I'd first clarify whether 100,000 means total, daily-active, or concurrent users, the peak-to-average traffic ratio, and the availability and consistency requirements. My design puts a global CDN in front of static assets and cacheable API responses, backed by an autoscaling PaaS web/app tier with rules on both CPU and request queue length so it reacts quickly to spikes. Session and cart state live in an externalized distributed cache so any instance can serve any request, which is what makes autoscaling and zero-downtime deployments possible. Orders and inventory sit in a managed relational database with zone-redundant high availability for consistency, while product-catalog reads go through a cache-aside layer to keep load off the primary. Releases go through a staging deployment slot with automated smoke tests and an atomic swap, so a bad release is a quick rollback rather than an incident. Secrets live in a managed vault accessed via managed identity, and the data tier sits in a private subnet reachable only from the app tier. I'd launch single-region with availability zones first, then add a second region with health-based traffic routing once the single-region path is proven under load.",
+      "level_expectations": {
+        "mid_level": "Chooses a managed, autoscaling web tier, externalizes session state, separates the database from direct internet access, and discusses basic caching, CDN use, and a safe deployment mechanism.",
+        "senior": "Quantifies peak-to-average traffic and sizes autoscaling and database capacity against it, separates read-heavy catalog traffic from write-critical order/inventory traffic, reasons about cache invalidation staleness, and designs for zone redundancy and safe rollback.",
+        "staff": "~40/60 breadth/depth. Spends most of the time on the hardest tradeoffs: how to pre-warm or scale fast enough for a promotional spike that outruns normal autoscale reaction time, how to bound cache staleness for price/stock changes without re-overloading the primary database, and why a swap-based deployment model with a warm standby slot is worth the extra idle capacity compared to in-place rolling updates during a high-traffic launch window."
+      },
+      "provenance_note": "The architecture principles in source_backed_facts are paraphrased from the linked Microsoft Learn publications. The retailer scenario, scale targets, APIs, entities, and rollout plan are proposed interview adaptations, not claims that Microsoft prescribes this exact system. The Aced title, URL, and company list are question metadata; the Aced page could not be independently extracted in this environment.",
+      "source_backed_facts": [
+        {
+          "claim": "Azure App Service is a fully managed platform for building, deploying, and scaling web apps, with built-in autoscaling and deployment slots for staged rollouts.",
+          "source_title": "Azure App Service overview",
+          "source_url": "https://learn.microsoft.com/en-us/azure/app-service/overview"
+        },
+        {
+          "claim": "Azure Front Door and Azure CDN provide global, scalable entry points that cache content close to users and can route traffic across backend regions based on health and latency.",
+          "source_title": "What is Azure Front Door?",
+          "source_url": "https://learn.microsoft.com/en-us/azure/frontdoor/front-door-overview"
+        },
+        {
+          "claim": "Azure SQL Database zone-redundant configurations replicate data synchronously across availability zones within a region to protect against zone-level failures with minimal application changes.",
+          "source_title": "High availability for Azure SQL Database",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-sql/database/high-availability-sla"
+        },
+        {
+          "claim": "Azure Cache for Redis can be used to externalize session state so that web applications remain stateless and can scale out across multiple instances.",
+          "source_title": "Azure Cache for Redis overview",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/cache-overview"
+        },
+        {
+          "claim": "Azure Key Vault centralizes secrets, keys, and certificates, and supports access via managed identities so applications avoid embedding credentials.",
+          "source_title": "About Azure Key Vault",
+          "source_url": "https://learn.microsoft.com/en-us/azure/key-vault/general/overview"
+        }
+      ],
+      "adapted_scenario_proposed_additions": [
+        {
+          "addition": "A B2C retail framing with a specific promotional-spike scenario and a 5x peak traffic multiplier.",
+          "rationale": "This forces concrete discovery around autoscaling and pre-warming; it is a proposed scenario constraint, not a fact from the source question."
+        },
+        {
+          "addition": "Explicit targets of 300ms p95 API latency, 99.9% availability, and zone-redundant data-tier HA.",
+          "rationale": "These proposed numbers make tradeoffs testable in an interview and should be renegotiated from the actual customer's workload data."
+        },
+        {
+          "addition": "A staged, four-phase rollout from single-region thin slice to multi-region active traffic routing.",
+          "rationale": "This is a proposed implementation sequencing choice to demonstrate incremental delivery, not a requirement from the original prompt."
+        }
+      ],
+      "source": {
+        "title": "Azure App Service overview - Microsoft Learn",
+        "canonical_url": "https://learn.microsoft.com/en-us/azure/app-service/overview"
+      },
+      "supporting_implementation": {
+        "title": "What is Azure Front Door? - global routing and caching",
+        "canonical_url": "https://learn.microsoft.com/en-us/azure/frontdoor/front-door-overview",
+        "note": "Use the documented global routing and caching behavior to design the edge tier; the case's specific capacity numbers and rollout plan remain proposed."
+      },
+      "what_is_it": "A managed Azure web hosting architecture that serves roughly 100,000 active retail customers through a CDN-fronted, autoscaling application tier, an externalized session cache, a zone-redundant relational database for orders and inventory, and a swap-based deployment model for safe, fast releases.",
+      "out_of_scope": [
+        "The retailer's payment-processor integration internals and PCI tokenization flow (assumed to be a third-party PSP).",
+        "Mobile native app clients; this case covers the web application and its backing APIs only.",
+        "Warehouse/fulfillment and shipping logistics systems beyond creating an Order record.",
+        "Detailed CI/CD pipeline tooling choices beyond the staging-slot/swap release mechanism itself."
+      ],
+      "planning_approach": "The hardest part of this problem is handling a sharp promotional traffic spike on a web tier that must stay cheap the rest of the time, which means autoscaling has to react faster than CPU-only signals and the edge/caching layer has to remove as much load as possible before it reaches compute. The second-hardest part is keeping session state out of individual instances so autoscaling and deployments do not fragment or lose user carts. I'll tackle the four workflows in dependency order: (1) serve web and API traffic, since nothing else matters if the edge/compute path cannot absorb peak load; (2) manage sessions and cart state, since it is a prerequisite for safely autoscaling workflow 1; (3) persist orders and inventory, since checkout correctness depends on how reads and writes are separated; (4) deploy and release safely, which depends on the serving tier being stateless and scalable to begin with.",
+      "capacity_estimation": [
+        {
+          "metric": "Active users",
+          "estimate": "~100,000 active users, ~15,000 concurrent during normal peak",
+          "derivation": "Stated as 100,000 users; assume a typical ~15% concurrency ratio for a retail site during normal daily peak browsing hours."
+        },
+        {
+          "metric": "Normal peak request rate",
+          "estimate": "~2,000 requests/sec",
+          "derivation": "15,000 concurrent users each issuing roughly one request every 7-8 seconds (page views, API polling) during normal peak."
+        },
+        {
+          "metric": "Promotional peak request rate",
+          "estimate": "~10,000 requests/sec (5x normal peak)",
+          "derivation": "Assume a 5x surge multiplier during a flash promotion, consistent with typical retail flash-sale spike ratios."
+        },
+        {
+          "metric": "App tier instance count at peak",
+          "estimate": "~20 instances at promotional peak, ~4 at normal peak",
+          "derivation": "10,000 req/sec / ~500 req/sec per instance capacity ≈ 20 instances; 2,000 / 500 ≈ 4 instances at normal peak."
+        },
+        {
+          "metric": "Session cache operations",
+          "estimate": "~6,000 ops/sec at normal peak, ~30,000 ops/sec at promotional peak",
+          "derivation": "Assume ~3 session reads/writes per request at 2,000 req/sec normal peak and 10,000 req/sec promotional peak."
+        },
+        {
+          "metric": "Database load after cache offload",
+          "estimate": "~1,500 requests/sec reaching the primary at promotional peak",
+          "derivation": "~90% of the ~9,500 catalog reads/sec are served from cache, leaving ~950 reads/sec plus ~500 checkout writes/sec reaching the primary."
+        }
+      ],
+      "workflows": [
+        {
+          "name": "Serve web and API traffic",
+          "steps": [
+            "A global CDN/edge layer caches static assets and cacheable API responses close to the user.",
+            "Uncached requests route to an autoscaling application tier via a load balancer/front door that checks instance health.",
+            "The app tier handles routing, request validation, and calls downstream session/data services as needed.",
+            "Autoscale rules monitor CPU and request queue length and add or remove instances within configured min/max bounds."
+          ],
+          "tech_decisions": [
+            {
+              "decision_title": "Queue-length-aware autoscaling vs. CPU-only autoscaling",
+              "chosen": "Scale the app tier on a combination of CPU utilization and request queue length/response time, with a pre-warmed minimum instance floor ahead of known promotions.",
+              "why_not": "CPU-only autoscaling is simpler to configure but lags behind a sharp spike, since queueing and latency degrade before CPU fully saturates, leaving a window of slow or failed requests.",
+              "why": [
+                "Queue length reacts to backlog earlier than CPU usage alone, triggering scale-out sooner in a fast spike.",
+                "A pre-warmed instance floor removes the cold-start scaling lag for the sharpest early minutes of a known promotional event.",
+                "Combining signals avoids both premature scale-out on brief CPU blips and late scale-out on I/O-bound request backlogs."
+              ],
+              "tradeoff": "Pre-warming ahead of a promotion costs idle compute for a planned window, and tuning two signals together is more complex than a single CPU threshold."
+            }
+          ],
+          "known_issue": "An unplanned, unannounced spike with no pre-warming can still outrun the autoscale reaction time for the first minute or two, during which the CDN and caching layer are the only real buffer."
+        },
+        {
+          "name": "Manage sessions and cart state",
+          "steps": [
+            "On first request, the app tier issues a session identifier and stores session/cart data in a managed distributed cache.",
+            "Subsequent requests from any app instance read and update the same session record via the session ID.",
+            "Cart checkout reads the session's cart contents and hands them to the order-creation workflow.",
+            "Expired or abandoned sessions are evicted by the cache's TTL policy rather than tracked per app instance."
+          ],
+          "tech_decisions": [
+            {
+              "decision_title": "Externalized distributed cache vs. sticky load-balancer sessions",
+              "chosen": "Store session and cart state in a managed, low-latency distributed cache keyed by session ID.",
+              "why_not": "Sticky sessions avoid an extra network hop but tie a user to one instance, which breaks clean autoscaling, complicates rolling deployments, and loses state entirely if that instance recycles.",
+              "why": [
+                "Any instance can serve any request, enabling fast autoscale-out and zero-downtime deployments.",
+                "A managed cache keeps read/write latency in the low single-digit milliseconds, a small fraction of the 300ms API budget.",
+                "Centralized TTL/eviction policy is simpler to operate than per-instance in-memory session lifetimes."
+              ],
+              "tradeoff": "Every session read/write now depends on the cache tier's availability and adds a network hop compared to in-process state."
+            }
+          ],
+          "known_issue": null
+        },
+        {
+          "name": "Persist orders and inventory",
+          "steps": [
+            "Checkout validates the cart against current stock and reserves inventory in a single consistent transaction.",
+            "The order record is created in a pending state and a confirmation event is returned to the client.",
+            "Product catalog reads are served from a cache-aside layer populated from the primary database.",
+            "Price or stock changes invalidate the relevant cache entries so subsequent reads reflect updated data within a bounded window."
+          ],
+          "tech_decisions": [
+            {
+              "decision_title": "Cache-aside catalog reads with a consistent primary for writes vs. scaling a single primary for all traffic",
+              "chosen": "Serve the high-volume, latency-tolerant catalog reads from a cache-aside layer while keeping checkout writes and inventory reservation on a zone-redundant, strongly consistent primary database.",
+              "why_not": "Scaling the primary database SKU up handles more total load but does not separate the much higher-volume browsing traffic from the consistency-critical checkout path, and eventually hits a cost and throughput ceiling.",
+              "why": [
+                "Offloading the majority of reads to cache leaves the primary's capacity for checkout-critical writes.",
+                "Zone-redundant HA on the primary protects consistency-critical order/inventory data against a zone failure.",
+                "Keeping inventory reservation on the consistent primary avoids overselling that a purely cached path cannot guarantee."
+              ],
+              "tradeoff": "Cached catalog data can be briefly stale after a price or stock change, requiring a bounded, explicit cache-invalidation strategy."
+            }
+          ],
+          "known_issue": "A burst of near-simultaneous checkouts for the same limited-stock item can still create contention on that single inventory row; this needs explicit handling (e.g., optimistic concurrency with retry) beyond the baseline design."
+        },
+        {
+          "name": "Deploy and release safely",
+          "steps": [
+            "A new build is deployed to a staging slot that mirrors production configuration and scale.",
+            "Automated smoke tests run against the staging slot before any production traffic is routed to it.",
+            "Staging and production slots are swapped atomically, making the new version live and the prior version warm in the swapped-out slot.",
+            "If a regression is detected, the slots are swapped back, restoring the previous version almost immediately."
+          ],
+          "tech_decisions": [
+            {
+              "decision_title": "Swap-based deployment slots vs. in-place rolling updates",
+              "chosen": "Deploy to a staging slot, validate with automated smoke tests, then perform an atomic slot swap, keeping the previous version warm for rollback.",
+              "why_not": "In-place rolling updates avoid paying for a second warm slot, but expose a mix of old and new code to live traffic mid-rollout and make rollback slower since prior-version instances have already been replaced.",
+              "why": [
+                "An atomic slot swap minimizes the window where inconsistent versions serve traffic simultaneously.",
+                "Automated smoke tests against staging catch configuration or dependency issues before customers are affected.",
+                "Rollback becomes a second swap instead of a redeploy, which is faster during an incident."
+              ],
+              "tradeoff": "Running a staging slot at production-like capacity roughly doubles compute cost for the tier during the deployment window, and database schema changes must stay backward compatible since both slots can briefly share the same database."
+            }
+          ],
+          "known_issue": null
+        }
+      ],
+      "final_design_summary": "Traffic enters through a global CDN/edge layer that absorbs cacheable load before it reaches an autoscaling, stateless application tier; session and cart state live in an externalized cache so any instance can serve any request; orders and inventory are written to a zone-redundant consistent primary while catalog reads are served from cache-aside to protect that primary's capacity; and releases go through a staging-slot swap so a bad deployment is a fast rollback rather than an incident — together sized and sequenced to absorb a 5x promotional traffic spike without manual intervention."
     }
   ]
 }
